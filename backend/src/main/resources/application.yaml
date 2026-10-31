@@ -23,3 +23,7 @@ springdoc:
   swagger-ui:
     operations-sorter: method
     tags-sorter: alpha
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
