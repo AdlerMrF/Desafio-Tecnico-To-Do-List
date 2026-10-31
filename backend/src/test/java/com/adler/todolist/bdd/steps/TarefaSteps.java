@@ -20,7 +20,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 public class TarefaSteps {
 
@@ -97,6 +99,44 @@ public class TarefaSteps {
     public void aRespostaDeveIndicarErro() throws Exception {
         Boolean error = JsonPath.read(responseBody(), "$.error");
         assertThat(error).isTrue();
+    }
+
+    @Quando("edito essa tarefa alterando o título para {string} e a prioridade para {string}")
+    public void editoEssaTarefa(String title, String priority) throws Exception {
+        String body = """
+                {"title": "%s", "priority": "%s", "status": "ON_GOING"}
+                """.formatted(title, priority);
+        result = mockMvc().perform(put("/api/tasks/{id}", existingId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andReturn();
+    }
+
+    @Quando("edito a tarefa com o identificador {string}")
+    public void editoATarefaComOIdentificador(String id) throws Exception {
+        String body = """
+                {"title": "Qualquer", "priority": "LOW", "status": "PENDENT"}
+                """;
+        result = mockMvc().perform(put("/api/tasks/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andReturn();
+    }
+
+    @Quando("concluo essa tarefa")
+    public void concluoEssaTarefa() throws Exception {
+        result = mockMvc().perform(patch("/api/tasks/{id}/complete", existingId)).andReturn();
+    }
+
+    @Quando("reabro essa tarefa")
+    public void reabroEssaTarefa() throws Exception {
+        result = mockMvc().perform(patch("/api/tasks/{id}/reopen", existingId)).andReturn();
+    }
+
+    @E("a tarefa deve estar com o status {string}")
+    public void aTarefaDeveEstarComOStatus(String status) throws Exception {
+        String actual = JsonPath.read(responseBody(), "$.payload.status");
+        assertThat(actual).isEqualTo(status);
     }
 
     private MockMvc mockMvc() {
