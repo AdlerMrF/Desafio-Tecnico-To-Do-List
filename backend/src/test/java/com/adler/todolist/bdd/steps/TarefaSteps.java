@@ -248,6 +248,32 @@ public class TarefaSteps {
         assertThat(actual.longValue()).isEqualTo(quantidade);
     }
 
+    @Dado("que informo uma tarefa sem título")
+    public void queInformoUmaTarefaSemTitulo() {
+        requestBody = """
+                {"priority": "HIGH"}
+                """;
+    }
+
+    @Dado("que informo uma tarefa válida com o identificador {string}")
+    public void queInformoUmaTarefaValidaComOIdentificador(String id) {
+        requestBody = """
+                {"id": "%s", "title": "Tarefa com id próprio", "priority": "LOW"}
+                """.formatted(id);
+    }
+
+    @E("o campo {string} deve ter a mensagem {string}")
+    public void oCampoDeveTerAMensagem(String campo, String mensagem) throws Exception {
+        String actual = JsonPath.read(responseBody(), "$.payload." + campo);
+        assertThat(actual).isEqualTo(mensagem);
+    }
+
+    @E("o UUID da resposta deve ser diferente de {string}")
+    public void oUuidDaRespostaDeveSerDiferenteDe(String id) throws Exception {
+        String actual = JsonPath.read(responseBody(), "$.payload.id");
+        assertThat(actual).isNotEqualTo(id);
+    }
+
     private MockMvc mockMvc() {
         return MockMvcBuilders.webAppContextSetup(context).build();
     }
