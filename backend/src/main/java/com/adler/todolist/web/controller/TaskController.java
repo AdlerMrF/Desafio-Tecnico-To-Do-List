@@ -2,6 +2,7 @@ package com.adler.todolist.web.controller;
 
 import com.adler.todolist.application.usecase.ChangeTaskStatusUseCase;
 import com.adler.todolist.application.usecase.CreateTaskUseCase;
+import com.adler.todolist.application.usecase.DeleteTaskUseCase;
 import com.adler.todolist.application.usecase.GetTaskUseCase;
 import com.adler.todolist.application.usecase.UpdateTaskUseCase;
 import com.adler.todolist.domain.model.Task;
@@ -12,6 +13,7 @@ import com.adler.todolist.web.response.ApiResponse;
 import com.adler.todolist.web.response.ApiResponseFactory;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,15 +33,18 @@ public class TaskController {
     private final GetTaskUseCase getTaskUseCase;
     private final UpdateTaskUseCase updateTaskUseCase;
     private final ChangeTaskStatusUseCase changeTaskStatusUseCase;
+    private final DeleteTaskUseCase deleteTaskUseCase;
 
     public TaskController(CreateTaskUseCase createTaskUseCase,
                           GetTaskUseCase getTaskUseCase,
                           UpdateTaskUseCase updateTaskUseCase,
-                          ChangeTaskStatusUseCase changeTaskStatusUseCase) {
+                          ChangeTaskStatusUseCase changeTaskStatusUseCase,
+                          DeleteTaskUseCase deleteTaskUseCase) {
         this.createTaskUseCase = createTaskUseCase;
         this.getTaskUseCase = getTaskUseCase;
         this.updateTaskUseCase = updateTaskUseCase;
         this.changeTaskStatusUseCase = changeTaskStatusUseCase;
+        this.deleteTaskUseCase = deleteTaskUseCase;
     }
 
     @PostMapping
@@ -71,5 +76,11 @@ public class TaskController {
     public ResponseEntity<ApiResponse<TaskResponse>> reopen(@PathVariable UUID id) {
         Task task = changeTaskStatusUseCase.reopen(id);
         return ApiResponseFactory.ok("Tarefa reaberta com sucesso", TaskResponse.from(task));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+        deleteTaskUseCase.execute(id);
+        return ApiResponseFactory.ok("Tarefa excluída com sucesso", null);
     }
 }

@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -137,6 +138,21 @@ public class TarefaSteps {
     public void aTarefaDeveEstarComOStatus(String status) throws Exception {
         String actual = JsonPath.read(responseBody(), "$.payload.status");
         assertThat(actual).isEqualTo(status);
+    }
+
+    @Quando("excluo essa tarefa")
+    public void excluoEssaTarefa() throws Exception {
+        result = mockMvc().perform(delete("/api/tasks/{id}", existingId)).andReturn();
+    }
+
+    @Quando("excluo a tarefa com o identificador {string}")
+    public void excluoATarefaComOIdentificador(String id) throws Exception {
+        result = mockMvc().perform(delete("/api/tasks/{id}", id)).andReturn();
+    }
+
+    @E("a tarefa não deve mais existir")
+    public void aTarefaNaoDeveMaisExistir() {
+        assertThat(taskRepository.findById(existingId)).isEmpty();
     }
 
     private MockMvc mockMvc() {
