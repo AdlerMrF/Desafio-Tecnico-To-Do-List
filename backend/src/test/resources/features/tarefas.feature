@@ -42,3 +42,14 @@ Funcionalidade: Gerenciamento de tarefas
     Quando edito a tarefa com o identificador "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     Então a API deve retornar HTTP 404
     E a resposta deve indicar erro
+
+  Cenário: Excluir uma tarefa existente
+    Dado que existe uma tarefa cadastrada com o título "Tarefa descartável"
+    Quando excluo essa tarefa
+    Então a API deve retornar HTTP 200
+    E a tarefa não deve mais existir
+
+  Cenário: Excluir tarefa inexistente
+    Quando excluo a tarefa com o identificador "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    Então a API deve retornar HTTP 404
+    E a resposta deve indicar erro
