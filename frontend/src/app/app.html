@@ -1,0 +1,22 @@
+<mat-toolbar color="primary" class="toolbar">
+  <span class="brand">To-Do List</span>
+  <span class="spacer"></span>
+  <nav>
+    <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <mat-icon>dashboard</mat-icon>
+      Dashboard
+    </a>
+    <a mat-button routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <mat-icon>list</mat-icon>
+      Tarefas
+    </a>
+    <a mat-flat-button routerLink="/tasks/new">
+      <mat-icon>add</mat-icon>
+      Nova tarefa
+    </a>
+  </nav>
+</mat-toolbar>
+
+<main class="content">
+  <router-outlet />
+</main>
