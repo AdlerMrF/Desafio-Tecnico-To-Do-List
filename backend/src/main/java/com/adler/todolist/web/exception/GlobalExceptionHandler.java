@@ -64,7 +64,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   WebRequest request) {
         Map<String, String> fields = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors()
-                .forEach(error -> fields.putIfAbsent(error.getField(), error.getDefaultMessage()));
+                .forEach(error -> fields.putIfAbsent(error.getField(),
+                        error.isBindingFailure() ? "Valor inválido" : error.getDefaultMessage()));
         return respond(HttpStatus.BAD_REQUEST, "Dados inválidos", fields, headers);
     }
 
