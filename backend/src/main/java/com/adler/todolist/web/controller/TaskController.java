@@ -4,9 +4,12 @@ import com.adler.todolist.application.usecase.ChangeTaskStatusUseCase;
 import com.adler.todolist.application.usecase.CreateTaskUseCase;
 import com.adler.todolist.application.usecase.DeleteTaskUseCase;
 import com.adler.todolist.application.usecase.GetTaskUseCase;
+import com.adler.todolist.application.usecase.ListTasksUseCase;
 import com.adler.todolist.application.usecase.UpdateTaskUseCase;
 import com.adler.todolist.domain.model.Task;
+import com.adler.todolist.domain.query.PageResult;
 import com.adler.todolist.web.dto.CreateTaskRequest;
+import com.adler.todolist.web.dto.ListTasksRequest;
 import com.adler.todolist.web.dto.TaskResponse;
 import com.adler.todolist.web.dto.UpdateTaskRequest;
 import com.adler.todolist.web.response.ApiResponse;
@@ -15,6 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,17 +38,28 @@ public class TaskController {
     private final UpdateTaskUseCase updateTaskUseCase;
     private final ChangeTaskStatusUseCase changeTaskStatusUseCase;
     private final DeleteTaskUseCase deleteTaskUseCase;
+    private final ListTasksUseCase listTasksUseCase;
 
     public TaskController(CreateTaskUseCase createTaskUseCase,
                           GetTaskUseCase getTaskUseCase,
                           UpdateTaskUseCase updateTaskUseCase,
                           ChangeTaskStatusUseCase changeTaskStatusUseCase,
-                          DeleteTaskUseCase deleteTaskUseCase) {
+                          DeleteTaskUseCase deleteTaskUseCase,
+                          ListTasksUseCase listTasksUseCase) {
         this.createTaskUseCase = createTaskUseCase;
         this.getTaskUseCase = getTaskUseCase;
         this.updateTaskUseCase = updateTaskUseCase;
         this.changeTaskStatusUseCase = changeTaskStatusUseCase;
         this.deleteTaskUseCase = deleteTaskUseCase;
+        this.listTasksUseCase = listTasksUseCase;
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResult<TaskResponse>>> list(
+            @Valid @ModelAttribute ListTasksRequest request) {
+        PageResult<TaskResponse> page = listTasksUseCase.execute(request.toQuery())
+                .map(TaskResponse::from);
+        return ApiResponseFactory.ok("Tarefas listadas com sucesso", page);
     }
 
     @PostMapping
