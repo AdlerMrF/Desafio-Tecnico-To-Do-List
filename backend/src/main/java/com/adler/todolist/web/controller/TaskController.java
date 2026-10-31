@@ -8,6 +8,7 @@ import com.adler.todolist.application.usecase.ListTasksUseCase;
 import com.adler.todolist.application.usecase.UpdateTaskUseCase;
 import com.adler.todolist.domain.model.Task;
 import com.adler.todolist.domain.query.PageResult;
+import com.adler.todolist.web.controller.docs.TaskControllerDocs;
 import com.adler.todolist.web.dto.CreateTaskRequest;
 import com.adler.todolist.web.dto.ListTasksRequest;
 import com.adler.todolist.web.dto.TaskResponse;
@@ -31,7 +32,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks")
-public class TaskController {
+public class TaskController implements TaskControllerDocs {
 
     private final CreateTaskUseCase createTaskUseCase;
     private final GetTaskUseCase getTaskUseCase;

@@ -1,6 +1,7 @@
 package com.adler.todolist.web.controller;
 
 import com.adler.todolist.application.usecase.GetDashboardUseCase;
+import com.adler.todolist.web.controller.docs.DashboardControllerDocs;
 import com.adler.todolist.web.dto.DashboardResponse;
 import com.adler.todolist.web.response.ApiResponse;
 import com.adler.todolist.web.response.ApiResponseFactory;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/dashboard")
-public class DashboardController {
+public class DashboardController implements DashboardControllerDocs {
 
     private final GetDashboardUseCase getDashboardUseCase;
 
