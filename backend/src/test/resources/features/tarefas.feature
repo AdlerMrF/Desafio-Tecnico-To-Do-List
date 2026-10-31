@@ -100,3 +100,21 @@ Funcionalidade: Gerenciamento de tarefas
     Quando consulto o dashboard
     Então a API deve retornar HTTP 200
     E o dashboard deve mostrar 0 tarefas no total
+
+  Cenário: Cadastrar tarefa sem título
+    Dado que informo uma tarefa sem título
+    Quando envio a solicitação de cadastro
+    Então a API deve retornar HTTP 400
+    E a resposta deve indicar erro
+    E o campo "title" deve ter a mensagem "O título é obrigatório"
+
+  Cenário: O identificador enviado no cadastro é ignorado
+    Dado que informo uma tarefa válida com o identificador "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    Quando envio a solicitação de cadastro
+    Então a API deve retornar HTTP 201
+    E o UUID da resposta deve ser diferente de "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
+  Cenário: Listar com tamanho de página acima do limite
+    Quando listo a página 0 com 500 tarefas por página
+    Então a API deve retornar HTTP 400
+    E o campo "size" deve ter a mensagem "O tamanho da página deve ser no máximo 100"
