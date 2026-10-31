@@ -231,6 +231,23 @@ public class TarefaSteps {
         assertThat(actual.longValue()).isEqualTo(total);
     }
 
+    @Quando("consulto o dashboard")
+    public void consultoODashboard() throws Exception {
+        result = mockMvc().perform(get("/api/dashboard")).andReturn();
+    }
+
+    @E("o dashboard deve mostrar {int} tarefa(s) no total")
+    public void oDashboardDeveMostrarNoTotal(int total) throws Exception {
+        Number actual = JsonPath.read(responseBody(), "$.payload.total");
+        assertThat(actual.longValue()).isEqualTo(total);
+    }
+
+    @E("o dashboard deve mostrar {int} tarefa(s) com status {string}")
+    public void oDashboardDeveMostrarComStatus(int quantidade, String status) throws Exception {
+        Number actual = JsonPath.read(responseBody(), "$.payload.byStatus." + status);
+        assertThat(actual.longValue()).isEqualTo(quantidade);
+    }
+
     private MockMvc mockMvc() {
         return MockMvcBuilders.webAppContextSetup(context).build();
     }

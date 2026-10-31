@@ -82,3 +82,21 @@ Funcionalidade: Gerenciamento de tarefas
     Então a API deve retornar HTTP 200
     E a listagem deve conter 5 tarefas
     E o total de tarefas deve ser 15
+
+  Cenário: Exibir os totais do dashboard
+    Dado que existem as tarefas:
+      | titulo          | prioridade | status  |
+      | Estudar Angular | HIGH       | PENDENT |
+      | Estudar Docker  | LOW        | PENDENT |
+      | Revisar PR      | MEDIUM     | DONE    |
+    Quando consulto o dashboard
+    Então a API deve retornar HTTP 200
+    E o dashboard deve mostrar 3 tarefas no total
+    E o dashboard deve mostrar 2 tarefas com status "PENDENT"
+    E o dashboard deve mostrar 0 tarefas com status "ON_GOING"
+    E o dashboard deve mostrar 1 tarefa com status "DONE"
+
+  Cenário: Dashboard sem tarefas cadastradas
+    Quando consulto o dashboard
+    Então a API deve retornar HTTP 200
+    E o dashboard deve mostrar 0 tarefas no total
