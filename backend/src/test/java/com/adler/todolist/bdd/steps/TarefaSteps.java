@@ -1,5 +1,7 @@
 package com.adler.todolist.bdd.steps;
 
+import com.adler.todolist.domain.model.Priority;
+import com.adler.todolist.domain.model.Task;
 import com.adler.todolist.domain.repository.TaskRepository;
 import com.jayway.jsonpath.JsonPath;
 import io.cucumber.java.pt.Dado;
@@ -17,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 public class TarefaSteps {
@@ -29,6 +32,7 @@ public class TarefaSteps {
 
     private String requestBody;
     private MvcResult result;
+    private UUID existingId;
 
     @Dado("que informo uma tarefa válida")
     public void queInformoUmaTarefaValida() {
@@ -44,8 +48,7 @@ public class TarefaSteps {
 
     @Quando("envio a solicitação de cadastro")
     public void envioASolicitacaoDeCadastro() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-        result = mockMvc.perform(post("/api/tasks")
+        result = mockMvc().perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andReturn();
@@ -66,6 +69,38 @@ public class TarefaSteps {
     public void aTarefaDeveEstarPersistida() throws Exception {
         String id = JsonPath.read(responseBody(), "$.payload.id");
         assertThat(taskRepository.findById(UUID.fromString(id))).isPresent();
+    }
+
+    @Dado("que existe uma tarefa cadastrada com o título {string}")
+    public void queExisteUmaTarefaCadastradaComOTitulo(String title) {
+        Task task = taskRepository.save(Task.create(title, null, Priority.MEDIUM, null, null));
+        existingId = task.getId();
+    }
+
+    @Quando("consulto essa tarefa pelo UUID")
+    public void consultoEssaTarefaPeloUuid() throws Exception {
+        result = mockMvc().perform(get("/api/tasks/{id}", existingId)).andReturn();
+    }
+
+    @Quando("consulto a tarefa com o identificador {string}")
+    public void consultoATarefaComOIdentificador(String id) throws Exception {
+        result = mockMvc().perform(get("/api/tasks/{id}", id)).andReturn();
+    }
+
+    @E("a resposta deve conter o título {string}")
+    public void aRespostaDeveConterOTitulo(String title) throws Exception {
+        String actual = JsonPath.read(responseBody(), "$.payload.title");
+        assertThat(actual).isEqualTo(title);
+    }
+
+    @E("a resposta deve indicar erro")
+    public void aRespostaDeveIndicarErro() throws Exception {
+        Boolean error = JsonPath.read(responseBody(), "$.error");
+        assertThat(error).isTrue();
+    }
+
+    private MockMvc mockMvc() {
+        return MockMvcBuilders.webAppContextSetup(context).build();
     }
 
     private String responseBody() throws Exception {
