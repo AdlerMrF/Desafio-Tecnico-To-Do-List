@@ -2,7 +2,7 @@
 
 Aplicação web para gerenciamento de tarefas pessoais: cadastro, consulta, edição, conclusão, reabertura e exclusão, com listagem paginada, ordenada e filtrada no servidor, e um dashboard com os totais por status.
 
-Desenvolvida para o desafio técnico de estágio Full Stack da **Place Tecnologia e Inovação**.
+Desenvolvida para o desafio técnico de estágio Full Stack da **Place Tecnologia e Inovação**. O enunciado está em [`Desafio_Tecnico_Estagio_Fullstack_Place_ToDo_List.pdf`](Desafio_Tecnico_Estagio_Fullstack_Place_ToDo_List.pdf).
 
 | Camada | Tecnologia |
 |---|---|
@@ -36,9 +36,10 @@ Desenvolvida para o desafio técnico de estágio Full Stack da **Place Tecnologi
 ```bash
 git clone https://github.com/AdlerMrF/Desafio-Tecnico-To-Do-List.git
 cd Desafio-Tecnico-To-Do-List
-cp .env.example .env          # no Windows (cmd): copy .env.example .env
 docker compose up --build
 ```
+
+O `docker compose up` funciona direto, sem configuração: sem o arquivo `.env`, o Compose usa os valores padrão (banco, usuário e senha `todolist`). Para trocar a senha ou as portas, crie o `.env` antes de subir: `cp .env.example .env` (no Windows, `copy .env.example .env`).
 
 O primeiro build leva alguns minutos, porque baixa as imagens e as dependências do Maven e do npm. Depois disso:
 
@@ -70,7 +71,7 @@ As variáveis ficam no arquivo `.env`, criado a partir do `.env.example`. O `.en
 | `DB_PORT` | `5432` | Porta do PostgreSQL publicada no computador |
 | `DB_NAME` | `todolist` | Nome do banco |
 | `DB_USER` | `todolist` | Usuário do banco |
-| `DB_PASSWORD` | sem padrão | Senha do banco (**obrigatória**; o Compose para com uma mensagem clara se ela faltar) |
+| `DB_PASSWORD` | `todolist` | Senha do banco. O padrão serve só para rodar localmente; troque no `.env` em qualquer outro ambiente |
 | `BACKEND_PORT` | `8080` | Porta da API publicada no computador |
 | `FRONTEND_PORT` | `4200` | Porta do frontend publicada no computador |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` | Origens aceitas pelo CORS da API, separadas por vírgula |
@@ -107,7 +108,9 @@ cd backend
 |---|---|---|
 | Unitários do domínio | JUnit 5 | Regras da entidade `Task`: título obrigatório, limite de 150 caracteres, concluir e reabrir |
 | Unitários dos casos de uso | JUnit 5 + Mockito | Cada caso de uso com o repositório simulado |
-| Web | JUnit 5 + Spring | Tratamento de erros, CORS, documentação OpenAPI e conversão dos filtros da listagem |
+| Web | JUnit 5 + Spring | Tratamento de erros, CORS (inclusive a recusa no contrato JSON), documentação OpenAPI e conversão dos filtros da listagem |
+| Arquitetura | ArchUnit | Falha o build se uma camada depender de outra fora da Onion Architecture, ou se o domínio ou a aplicação importarem Spring, JPA ou Servlet |
+| Transações | JUnit 5 + Spring | Os casos de uso recebem transação (somente leitura nas consultas) sem usar `@Transactional` |
 | Comportamento (BDD) | Cucumber + Testcontainers | 17 cenários em Gherkin, em português, contra a API e um PostgreSQL real |
 
 Os cenários estão em [`backend/src/test/resources/features/tarefas.feature`](backend/src/test/resources/features/tarefas.feature). Exemplo:
@@ -140,7 +143,7 @@ Os testes cobrem o service HTTP, o interceptor de erros, cada tela (listagem, de
 
 ### Backend: Onion Architecture
 
-As dependências apontam sempre para dentro: o **domínio** não conhece Spring, HTTP nem JPA; a **aplicação** depende só do domínio; a **infraestrutura** e a **web** dependem das camadas internas, e nunca o contrário.
+As dependências apontam sempre para dentro: o **domínio** e a **aplicação** são Java puro, sem Spring, HTTP nem JPA; a **aplicação** depende só do domínio; a **infraestrutura** e a **web** dependem das camadas internas, e nunca o contrário. Essas regras são verificadas a cada build por um teste com **ArchUnit** (`ArchitectureTest`).
 
 ```
 web  ─────────►  application  ─────────►  domain  ◄─────────  infrastructure
@@ -155,20 +158,22 @@ backend/src/main/java/com/adler/todolist
 │   ├── query                   # TaskQuery, TaskFilter, TaskSortField, SortDirection, PageResult
 │   └── repository              # TaskRepository: a porta que o domínio exige
 ├── application
-│   └── usecase                 # Create, Get, Update, ChangeTaskStatus, Delete, ListTasks, GetDashboard
+│   └── usecase                 # Create, Get, Update, ChangeTaskStatus, Delete, ListTasks, GetDashboard (Java puro)
 ├── infrastructure
 │   ├── persistence             # TaskEntity, Spring Data, Specifications, adaptador do repositório
-│   └── config                  # CORS e OpenAPI
+│   └── config                  # Registro dos casos de uso, transações, CORS e OpenAPI
 └── web
     ├── controller              # TaskController e DashboardController (+ docs do Swagger)
     ├── dto                     # Requests e responses, com Bean Validation
     ├── response                # ApiResponse e ApiResponseFactory: o contrato JSON
-    └── exception               # GlobalExceptionHandler: todos os erros no contrato
+    ├── exception               # GlobalExceptionHandler: todos os erros no contrato
+    └── cors                    # Recusa de CORS (403) também no contrato JSON
 ```
 
 **Pontos principais:**
 - **A entidade de domínio `Task` é diferente da `TaskEntity` do JPA.** O `TaskEntityMapper` converte uma na outra, e as anotações de persistência não vazam para o domínio.
 - **`TaskRepository` é uma interface do domínio** (porta). A implementação (`TaskRepositoryAdapter`) fica na infraestrutura e usa Spring Data por baixo.
+- **Os casos de uso não têm `@Service` nem `@Transactional`.** A infraestrutura os registra como beans (`UseCaseConfig`) e aplica a transação em cada método público (`TransactionConfig`), somente leitura nas consultas.
 - **O UUID é gerado no domínio** (`UUID.randomUUID()` em `Task.create`) e gravado no tipo nativo `UUID` do PostgreSQL. Um `id` enviado no corpo da requisição é ignorado.
 - **Filtros, ordenação e paginação rodam no PostgreSQL**, com JPA Specifications combináveis e `Pageable`, e nunca em memória.
 - **O dashboard é calculado com uma única consulta `GROUP BY status`**; os status sem tarefas aparecem com zero.
@@ -247,6 +252,7 @@ Todas as respostas com corpo seguem o contrato JSON, com `Content-Type: applicat
 | Rota inexistente | 404 | `null` |
 | Método não suportado | 405 | `null` |
 | `Content-Type` diferente de JSON | 415 | `null` |
+| Origem não permitida pelo CORS | 403 | `null` |
 | Erro inesperado | 500 | `null` (o detalhe vai só para o log) |
 
 A documentação interativa, com exemplos de cada resposta, está no **Swagger UI**: http://localhost:8080/swagger-ui.html.
@@ -384,6 +390,7 @@ curl http://localhost:8080/api/tasks/00000000-0000-0000-0000-000000000000
 - [x] Documentação da API com OpenAPI e Swagger UI
 - [x] Migrations com Flyway
 - [x] Dockerfiles multi-stage
+- [x] Teste de arquitetura com ArchUnit, que garante as dependências da Onion Architecture
 
 ### Extras
 - Cards do dashboard clicáveis, que abrem a listagem já filtrada (`/tasks?status=DONE`)
@@ -404,7 +411,8 @@ curl http://localhost:8080/api/tasks/00000000-0000-0000-0000-000000000000
 - **O LIKE da busca escapa `%` e `_`.** Buscar `100%` procura o texto literal, e não "qualquer coisa que comece com 100".
 - **`size` é limitado a 100**, para que uma requisição não peça a tabela inteira.
 - **`open-in-view: false`.** A sessão do banco não fica aberta durante a serialização da resposta.
-- **No Docker, o frontend chama a API pelo proxy do nginx** (`/api`), na mesma origem. Fora do Docker (`ng serve`), chama `http://localhost:8080/api`, e por isso a API tem o CORS configurável.
+- **No Docker, o frontend chama a API pelo proxy do nginx** (`/api`), na mesma origem. Fora do Docker (`ng serve`), chama `http://localhost:8080/api`, e por isso a API tem o CORS configurável. Uma origem recusada recebe 403 no mesmo contrato JSON dos outros erros.
+- **Senha padrão só para desenvolvimento.** O `docker compose up` sobe sem nenhum arquivo extra, usando `todolist` como senha do banco local. O `.env` (não versionado) sobrescreve qualquer valor.
 
 ---
 
@@ -413,7 +421,6 @@ curl http://localhost:8080/api/tasks/00000000-0000-0000-0000-000000000000
 - **Não há autenticação nem separação por usuário**: todas as tarefas são visíveis para quem acessa a aplicação. O desafio não pede isso.
 - **A busca por título usa `lower(title) LIKE '%termo%'`**, que não aproveita índice B-tree. Para volumes grandes, um índice com a extensão `pg_trgm` resolveria.
 - **Não há controle de concorrência otimista** (`@Version`): se duas pessoas editarem a mesma tarefa ao mesmo tempo, vale a última gravação.
-- **O 403 de uma requisição CORS de origem não permitida sai em texto puro**, fora do contrato JSON. Ele é gerado pelo filtro de CORS do Spring antes de a requisição chegar ao controller. No uso normal (Docker com proxy, ou `ng serve` na origem permitida), isso não acontece.
 - **Tarefas sem vencimento ficam no fim na ordenação crescente por vencimento, e no início na decrescente**, que é o comportamento padrão do PostgreSQL para `NULL`.
 - **Os testes de integração e o Cucumber precisam do Docker rodando** (Testcontainers), e por isso não rodam dentro do build das imagens.
 - **Não há testes end-to-end** do frontend (Playwright ou Cypress); os testes Angular são de componente e de serviço.

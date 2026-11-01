@@ -2,13 +2,10 @@ package com.adler.todolist.application.usecase;
 
 import com.adler.todolist.domain.model.TaskStatus;
 import com.adler.todolist.domain.repository.TaskRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumMap;
 import java.util.Map;
 
-@Service
 public class GetDashboardUseCase {
 
     private final TaskRepository taskRepository;
@@ -17,7 +14,6 @@ public class GetDashboardUseCase {
         this.taskRepository = taskRepository;
     }
 
-    @Transactional(readOnly = true)
     public DashboardSummary execute() {
         Map<TaskStatus, Long> counts = taskRepository.countByStatus();
 
