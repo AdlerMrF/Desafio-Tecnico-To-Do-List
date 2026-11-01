@@ -1,1 +1,84 @@
-<p>task-detail works!</p>
+<a mat-button routerLink="/tasks" class="back">
+  <mat-icon>arrow_back</mat-icon>
+  Voltar para a lista
+</a>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (task(); as task) {
+  @if (errorMessage(); as message) {
+    <div class="error" role="alert">
+      <mat-icon>error</mat-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>{{ task.title }}</mat-card-title>
+      <mat-card-subtitle class="badges">
+        <span class="badge priority-{{ task.priority | lowercase }}">Prioridade {{ priorityLabels[task.priority] | lowercase }}</span>
+        <span class="badge status-{{ task.status | lowercase }}">{{ statusLabels[task.status] }}</span>
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <h2 class="section-label">Descrição</h2>
+      @if (task.description) {
+        <p class="description">{{ task.description }}</p>
+      } @else {
+        <p class="muted">Sem descrição.</p>
+      }
+
+      <dl class="details">
+        <div>
+          <dt>Vencimento</dt>
+          <dd>{{ task.dueDate ? (task.dueDate | date: 'dd/MM/yyyy') : 'Sem vencimento' }}</dd>
+        </div>
+        <div>
+          <dt>Criada em</dt>
+          <dd>{{ task.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+        <div>
+          <dt>Atualizada em</dt>
+          <dd>{{ task.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+        <div>
+          <dt>Identificador</dt>
+          <dd class="mono">{{ task.id }}</dd>
+        </div>
+      </dl>
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      <button mat-button type="button" (click)="remove(task)">
+        <mat-icon>delete</mat-icon>
+        Excluir
+      </button>
+      @if (task.status === 'DONE') {
+        <button mat-button type="button" (click)="toggleStatus(task)">
+          <mat-icon>replay</mat-icon>
+          Reabrir
+        </button>
+      } @else {
+        <button mat-button type="button" (click)="toggleStatus(task)">
+          <mat-icon>check_circle</mat-icon>
+          Concluir
+        </button>
+      }
+      <a mat-flat-button [routerLink]="['/tasks', task.id, 'edit']">
+        <mat-icon>edit</mat-icon>
+        Editar
+      </a>
+    </mat-card-actions>
+  </mat-card>
+} @else if (!loading()) {
+  <div class="state" role="alert">
+    <mat-icon class="state-icon">{{ notFound() ? 'search_off' : 'error' }}</mat-icon>
+    <h1>{{ notFound() ? 'Tarefa não encontrada' : 'Não foi possível carregar a tarefa' }}</h1>
+    <p>{{ errorMessage() }}</p>
+    <a mat-flat-button routerLink="/tasks">Voltar para a lista</a>
+  </div>
+}
