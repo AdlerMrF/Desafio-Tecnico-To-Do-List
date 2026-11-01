@@ -1,249 +1,206 @@
-# Desafio Técnico: To-Do List
+# To-Do List: Desafio Técnico Full Stack
 
-Aplicação full stack para gerenciar tarefas: cadastro, edição, conclusão, exclusão, listagem com busca, filtros, ordenação e paginação no servidor, e um dashboard com os totais por status.
+Aplicação web para gerenciamento de tarefas pessoais: cadastro, consulta, edição, conclusão, reabertura e exclusão, com listagem paginada, ordenada e filtrada no servidor, e um dashboard com os totais por status.
 
-- **Backend:** Java 25, Spring Boot 4.1 e PostgreSQL 18, com arquitetura em camadas.
-- **Frontend:** Angular 22 com Angular Material.
-- **Infraestrutura:** Docker Compose sobe banco, API e interface com um único comando.
-
-## Sumário
-
-1. [Funcionalidades](#funcionalidades)
-2. [Tecnologias](#tecnologias)
-3. [Como rodar com Docker (recomendado)](#como-rodar-com-docker-recomendado)
-4. [Como rodar sem Docker (desenvolvimento)](#como-rodar-sem-docker-desenvolvimento)
-5. [Variáveis de ambiente](#variáveis-de-ambiente)
-6. [Como rodar os testes](#como-rodar-os-testes)
-7. [Arquitetura](#arquitetura)
-8. [API REST](#api-rest)
-9. [Exemplos de chamadas](#exemplos-de-chamadas)
-10. [Decisões técnicas](#decisões-técnicas)
-11. [Estrutura do repositório](#estrutura-do-repositório)
-12. [Licença](#licença)
-
-## Funcionalidades
-
-**Tarefas**
-- Criar, consultar, editar e excluir tarefas, com título, descrição, prioridade, status e data de vencimento.
-- Concluir (`DONE`) e reabrir (`PENDENT`) com uma ação só.
-- Exclusão com diálogo de confirmação: cancelar, apertar Esc ou clicar fora não exclui nada.
-
-**Listagem**
-- Busca por parte do título, sem diferenciar maiúsculas de minúsculas.
-- Filtros por status e por prioridade, que podem ser combinados com a busca.
-- Ordenação por título, vencimento ou data de criação, crescente ou decrescente.
-- Paginação no servidor, com 5, 10, 25 ou 50 itens por página.
-- Os filtros podem vir pela URL (`/tasks?status=DONE`).
-
-**Dashboard**
-- Total de tarefas e um card por status, com quantidade e percentual.
-- Os cards abrem a listagem já filtrada.
-- Barra de progresso com o percentual de tarefas concluídas.
-
-**Experiência de uso**
-- Estados de carregando, erro (com "Tentar de novo") e vazio em todas as telas.
-- Snackbar confirmando cada operação.
-- Mensagens de validação do servidor exibidas no campo do formulário.
-- Layout para celular: até 600px, a listagem mostra 3 colunas e as ações viram um menu.
-- Interface, datas e paginador em português (pt-BR).
-
-## Tecnologias
+Desenvolvida para o desafio técnico de estágio Full Stack da **Place Tecnologia e Inovação**.
 
 | Camada | Tecnologia |
 |---|---|
-| Linguagem do backend | Java 25 |
-| Framework | Spring Boot 4.1 (Web MVC, Data JPA, Validation) |
-| Banco de dados | PostgreSQL 18 |
-| Migrations | Flyway |
-| Documentação da API | springdoc-openapi 3 (Swagger UI) |
-| Testes do backend | JUnit 5, Mockito, Cucumber 8 (BDD em português), Testcontainers |
-| Frontend | Angular 22, Angular Material, RxJS, Signals |
-| Testes do frontend | Vitest 5 (via `ng test`), com cobertura pelo `@vitest/coverage-v8` |
-| Servidor web | nginx 1.29, que serve o Angular e faz o proxy de `/api` |
-| Infraestrutura | Docker (imagens multi-stage) e Docker Compose |
+| Backend | Java 25, Spring Boot 4.1, Spring Data JPA, Bean Validation |
+| Frontend | Angular 22, Angular Material, Reactive Forms, Signals |
+| Banco | PostgreSQL 18, com migrations via Flyway |
+| Ambiente | Docker e Docker Compose (nginx servindo o frontend) |
+| Testes | JUnit 5, Mockito, Cucumber (Gherkin em português), Testcontainers, Vitest |
+| Documentação | OpenAPI 3 com Swagger UI (springdoc) |
 
-## Como rodar com Docker (recomendado)
+---
 
-**Pré-requisito:** Docker com Docker Compose (Docker Desktop no Windows e no macOS). Não é preciso ter Java, Node nem PostgreSQL instalados.
+## Sumário
+
+1. [Como executar com Docker Compose](#como-executar-com-docker-compose)
+2. [Como rodar os testes](#como-rodar-os-testes)
+3. [Arquitetura](#arquitetura)
+4. [API REST](#api-rest)
+5. [Exemplos de chamadas](#exemplos-de-chamadas)
+6. [Funcionalidades concluídas](#funcionalidades-concluídas)
+7. [Decisões técnicas](#decisões-técnicas)
+8. [Limitações conhecidas](#limitações-conhecidas)
+9. [Executando sem Docker (desenvolvimento)](#executando-sem-docker-desenvolvimento)
+
+---
+
+## Como executar com Docker Compose
+
+**Pré-requisito:** Docker com o Docker Compose (Docker Desktop no Windows e no macOS).
 
 ```bash
 git clone https://github.com/AdlerMrF/Desafio-Tecnico-To-Do-List.git
 cd Desafio-Tecnico-To-Do-List
-
-cp .env.example .env        # no Windows (cmd): copy .env.example .env
+cp .env.example .env          # no Windows (cmd): copy .env.example .env
 docker compose up --build
 ```
 
-A primeira execução leva alguns minutos, porque baixa as dependências do Maven e do npm. Quando o log mostrar `Started TodolistApplication`, acesse:
+O primeiro build leva alguns minutos, porque baixa as imagens e as dependências do Maven e do npm. Depois disso:
 
-| O quê | Endereço |
+| Serviço | Endereço |
 |---|---|
-| Aplicação | http://localhost:4200 |
-| Swagger (documentação interativa da API) | http://localhost:8080/swagger-ui.html |
+| Aplicação (frontend) | http://localhost:4200 |
 | API | http://localhost:8080/api |
+| Swagger UI | http://localhost:8080/swagger-ui.html |
+| OpenAPI (JSON) | http://localhost:8080/v3/api-docs |
+| PostgreSQL | `localhost:5432` |
 
-Comandos úteis:
+**Comandos úteis:**
 
 ```bash
 docker compose up -d --build   # sobe em segundo plano
-docker compose ps              # 3 containers rodando, com o banco "healthy"
-docker compose logs -f backend # acompanha o log da API
-docker compose down            # para tudo e mantém os dados
+docker compose ps              # situação dos containers
+docker compose logs -f backend # log da API
+docker compose down            # para tudo (os dados continuam no volume)
 docker compose down -v         # para tudo e apaga o banco
 ```
 
-> As portas 4200, 8080 e 5432 precisam estar livres. Se alguma estiver ocupada, troque `FRONTEND_PORT`, `BACKEND_PORT` ou `DB_PORT` no `.env`.
+### Variáveis de ambiente
 
-Sem o arquivo `.env`, o Compose para logo no início com a mensagem "Crie o arquivo .env a partir do .env.example", em vez de subir o banco sem senha.
+As variáveis ficam no arquivo `.env`, criado a partir do `.env.example`. O `.env` não é versionado.
 
-## Como rodar sem Docker (desenvolvimento)
-
-Para desenvolver com recarga automática:
-
-**Pré-requisitos:** Java 25, Node.js 24 (ou outra versão aceita pelo Angular 22) e Docker, que continua sendo usado só para o banco.
-
-1. **Banco de dados** (na raiz):
-   ```bash
-   cp .env.example .env
-   docker compose up -d postgres
-   ```
-2. **Backend** (em `backend/`):
-   ```bash
-   ./mvnw spring-boot:run      # no Windows: mvnw spring-boot:run
-   ```
-   O backend lê o `../.env` automaticamente e sobe em http://localhost:8080. O Flyway cria as tabelas na primeira execução.
-3. **Frontend** (em `frontend/`):
-   ```bash
-   npm ci
-   npm start
-   ```
-   A aplicação abre em http://localhost:4200 e chama a API direto em `http://localhost:8080/api`, liberada pelo CORS.
-
-## Variáveis de ambiente
-
-Todas ficam no `.env` da raiz, criado a partir do `.env.example`. O `.env` real nunca vai para o Git.
-
-| Variável | Padrão | Para que serve |
+| Variável | Padrão | Uso |
 |---|---|---|
-| `DB_HOST` | `localhost` | Host do banco quando o backend roda fora do Docker. No Compose, ele é fixado em `postgres` |
-| `DB_PORT` | `5432` | Porta do PostgreSQL |
+| `DB_HOST` | `localhost` | Host do banco quando a API roda fora do Docker. No Compose, ele é sempre `postgres` |
+| `DB_PORT` | `5432` | Porta do PostgreSQL publicada no computador |
 | `DB_NAME` | `todolist` | Nome do banco |
 | `DB_USER` | `todolist` | Usuário do banco |
-| `DB_PASSWORD` | (obrigatória) | Senha do banco. Troque o valor de exemplo |
-| `BACKEND_PORT` | `8080` | Porta publicada da API |
-| `FRONTEND_PORT` | `4200` | Porta publicada da interface |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` | Origens aceitas pelo CORS (separe várias por vírgula) |
+| `DB_PASSWORD` | sem padrão | Senha do banco (**obrigatória**; o Compose para com uma mensagem clara se ela faltar) |
+| `BACKEND_PORT` | `8080` | Porta da API publicada no computador |
+| `FRONTEND_PORT` | `4200` | Porta do frontend publicada no computador |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` | Origens aceitas pelo CORS da API, separadas por vírgula |
+
+### Como os containers conversam
+
+```
+Navegador ──► frontend (nginx :80, publicado em :4200)
+                 ├── /           → arquivos do Angular (com fallback para index.html)
+                 └── /api/*      → proxy para backend:8080
+                                       │
+                                       ▼
+                               backend (Spring Boot :8080) ──► postgres (:5432, volume postgres_data)
+```
+
+- O nginx faz **proxy de `/api`** para o backend, então o navegador vê uma única origem e não depende de CORS.
+- O backend só sobe depois que o **healthcheck** do PostgreSQL (`pg_isready`) passa; assim o Flyway nunca encontra o banco ainda iniciando.
+- Os dados ficam no volume **`postgres_data`** e sobrevivem a um `docker compose down`.
+
+---
 
 ## Como rodar os testes
 
-### Backend: 47 testes
+### Backend
 
 ```bash
 cd backend
-./mvnw test                  # no Windows: mvnw test
+./mvnw test        # no Windows: mvnw test
 ```
 
-O Docker precisa estar rodando, porque os testes de integração usam Testcontainers e sobem um PostgreSQL 18 descartável. O banco de desenvolvimento não é tocado.
+**Pré-requisitos:** Java 25 e o **Docker rodando**, porque os testes de integração e os cenários do Cucumber sobem um PostgreSQL 18 real com Testcontainers.
 
-| Tipo | O que cobre |
-|---|---|
-| Domínio | Regras da entidade `Task`: título obrigatório e com até 150 caracteres, status inicial, concluir e reabrir |
-| Casos de uso | Os 7 casos de uso, com o repositório simulado (Mockito) |
-| Web | Validação dos parâmetros da listagem, tratamento de erros, CORS e geração do OpenAPI |
-| BDD (Cucumber) | 17 cenários em português, de ponta a ponta, contra um PostgreSQL real: cadastro, consulta, edição, conclusão, exclusão, filtros, ordenação, paginação, dashboard e erros |
+| Tipo | Ferramentas | O que cobre |
+|---|---|---|
+| Unitários do domínio | JUnit 5 | Regras da entidade `Task`: título obrigatório, limite de 150 caracteres, concluir e reabrir |
+| Unitários dos casos de uso | JUnit 5 + Mockito | Cada caso de uso com o repositório simulado |
+| Web | JUnit 5 + Spring | Tratamento de erros, CORS, documentação OpenAPI e conversão dos filtros da listagem |
+| Comportamento (BDD) | Cucumber + Testcontainers | 17 cenários em Gherkin, em português, contra a API e um PostgreSQL real |
 
-Os cenários BDD ficam em [`backend/src/test/resources/features/tarefas.feature`](backend/src/test/resources/features/tarefas.feature).
+Os cenários estão em [`backend/src/test/resources/features/tarefas.feature`](backend/src/test/resources/features/tarefas.feature). Exemplo:
 
-### Frontend: 42 testes em 11 arquivos
+```gherkin
+Cenário: Cadastrar tarefa com sucesso
+  Dado que informo uma tarefa válida
+  Quando envio a solicitação de cadastro
+  Então a API deve retornar HTTP 201
+  E a resposta deve conter um UUID
+  E a tarefa deve estar persistida
+```
+
+O relatório HTML do Cucumber é gerado em `backend/target/cucumber-report.html`.
+
+### Frontend
 
 ```bash
 cd frontend
 npm ci
-npx ng test --watch=false
-npx ng test --watch=false --coverage   # gera o relatório em frontend/coverage/index.html
+npx ng test --watch=false                # 42 testes (Vitest)
+npx ng test --watch=false --coverage     # com relatório de cobertura em frontend/coverage/
 ```
 
-Os testes cobrem as quatro telas, o `TaskService`, o interceptor de erros, o adaptador de datas pt-BR, o paginador em português, o diálogo de confirmação e o serviço de notificações. Detalhes no [README do frontend](frontend/README.md).
+Os testes cobrem o service HTTP, o interceptor de erros, cada tela (listagem, detalhe, formulário e dashboard), o diálogo de confirmação, o adaptador de datas em pt-BR e o paginador traduzido.
+
+---
 
 ## Arquitetura
 
-```
-┌───────────────┐   /api/*    ┌───────────────┐    JDBC     ┌───────────────┐
-│  todolist-web │ ──────────► │  todolist-api │ ──────────► │  todolist-db  │
-│ nginx+Angular │   (proxy)   │  Spring Boot  │             │ PostgreSQL 18 │
-│    :4200      │             │    :8080      │             │    :5432      │
-└───────────────┘             └───────────────┘             └───────────────┘
-```
+### Backend: Onion Architecture
 
-O navegador conversa só com o nginx. As chamadas para `/api` são repassadas ao backend pela rede interna do Compose, então tudo fica na mesma origem e o CORS não entra em jogo. O CORS só é usado no desenvolvimento, com o `ng serve` na 4200 chamando a API na 8080.
-
-### Backend em camadas
+As dependências apontam sempre para dentro: o **domínio** não conhece Spring, HTTP nem JPA; a **aplicação** depende só do domínio; a **infraestrutura** e a **web** dependem das camadas internas, e nunca o contrário.
 
 ```
-web  ──►  application  ──►  domain  ◄──  infrastructure
+web  ─────────►  application  ─────────►  domain  ◄─────────  infrastructure
+(HTTP)           (casos de uso)           (regras)            (JPA, config)
 ```
 
-| Camada | Pacote | Responsabilidade |
-|---|---|---|
-| **domain** | `domain.model`, `domain.query`, `domain.repository`, `domain.exception` | A entidade `Task` com as regras de negócio, os enums, os objetos de consulta e a interface `TaskRepository`. Não depende de Spring nem de JPA |
-| **application** | `application.usecase` | Um caso de uso por operação: criar, consultar, editar, mudar status, excluir, listar e dashboard |
-| **infrastructure** | `infrastructure.persistence`, `infrastructure.config` | Implementa o `TaskRepository` com Spring Data JPA (entidade, mapper e Specifications), além da configuração de CORS e do OpenAPI |
-| **web** | `web.controller`, `web.dto`, `web.response`, `web.exception` | Controllers REST, DTOs com Bean Validation, o envelope padrão de resposta e o tratamento global de erros |
+```
+backend/src/main/java/com/adler/todolist
+├── domain                      # Núcleo: Java puro, sem Spring nem JPA
+│   ├── model                   # Task (regras de negócio), Priority, TaskStatus
+│   ├── exception               # TaskNotFoundException, InvalidTaskException
+│   ├── query                   # TaskQuery, TaskFilter, TaskSortField, SortDirection, PageResult
+│   └── repository              # TaskRepository: a porta que o domínio exige
+├── application
+│   └── usecase                 # Create, Get, Update, ChangeTaskStatus, Delete, ListTasks, GetDashboard
+├── infrastructure
+│   ├── persistence             # TaskEntity, Spring Data, Specifications, adaptador do repositório
+│   └── config                  # CORS e OpenAPI
+└── web
+    ├── controller              # TaskController e DashboardController (+ docs do Swagger)
+    ├── dto                     # Requests e responses, com Bean Validation
+    ├── response                # ApiResponse e ApiResponseFactory: o contrato JSON
+    └── exception               # GlobalExceptionHandler: todos os erros no contrato
+```
 
-O domínio define a interface do repositório, e a infraestrutura a implementa. Assim, as regras de negócio não conhecem o banco, e os casos de uso são testados com um repositório simulado.
+**Pontos principais:**
+- **A entidade de domínio `Task` é diferente da `TaskEntity` do JPA.** O `TaskEntityMapper` converte uma na outra, e as anotações de persistência não vazam para o domínio.
+- **`TaskRepository` é uma interface do domínio** (porta). A implementação (`TaskRepositoryAdapter`) fica na infraestrutura e usa Spring Data por baixo.
+- **O UUID é gerado no domínio** (`UUID.randomUUID()` em `Task.create`) e gravado no tipo nativo `UUID` do PostgreSQL. Um `id` enviado no corpo da requisição é ignorado.
+- **Filtros, ordenação e paginação rodam no PostgreSQL**, com JPA Specifications combináveis e `Pageable`, e nunca em memória.
+- **O dashboard é calculado com uma única consulta `GROUP BY status`**; os status sem tarefas aparecem com zero.
+- **O schema é versionado pelo Flyway** (`V1__create_tasks.sql`), e o Hibernate apenas valida (`ddl-auto: validate`).
 
 ### Frontend
 
-| Pasta | Conteúdo |
-|---|---|
-| `core/` | Modelos, `TaskService`, interceptor de erros, serviços de confirmação e notificação, e a localização pt-BR (datas e paginador) |
-| `features/` | As telas: dashboard, listagem, detalhe e formulário (criar e editar) |
-| `shared/` | O diálogo de confirmação reutilizável |
+```
+frontend/src/app
+├── core
+│   ├── models          # Tipos do contrato JSON, Task, filtros e paginação
+│   ├── services        # TaskService (HTTP), ConfirmService (MatDialog), NotificationService (snackbar)
+│   ├── interceptors    # Converte qualquer erro HTTP em ApiError, num único lugar
+│   └── i18n            # Paginador e datepicker em português
+├── shared
+│   └── confirm-dialog  # Diálogo de confirmação reutilizável
+└── features
+    ├── dashboard       # Cards com os totais por status e progresso
+    └── tasks           # Listagem, detalhe e formulário (criação e edição)
+```
 
-Cada tela é carregada sob demanda (`loadComponent`), então o pacote inicial fica em torno de 670 kB.
+- **A apresentação fica separada da comunicação HTTP.** Os componentes não usam o `HttpClient` diretamente: tudo passa pelo `TaskService`, que desembrulha o `payload` do contrato.
+- **Os erros são tratados num só lugar.** O interceptor lê `error`, `message` e `payload` do contrato e entrega às telas um `ApiError`. Os erros de validação (400) aparecem embaixo do campo correspondente no formulário.
+- **O estado vive em signals.** A busca é reativa (`toObservable` + `switchMap`): mudar um filtro cancela a requisição anterior.
+- **Filtros, ordenação e paginação são feitos no servidor.** A `MatTable` exibe apenas a página que veio da API.
+- **As rotas usam lazy loading** (`loadComponent`), e os parâmetros da rota chegam como inputs (`withComponentInputBinding`).
+
+---
 
 ## API REST
 
-Base: `http://localhost:8080/api`. A documentação interativa fica no [Swagger](http://localhost:8080/swagger-ui.html).
-
-| Método | Rota | Descrição | Sucesso |
-|---|---|---|---|
-| `GET` | `/tasks` | Lista com busca, filtros, ordenação e paginação | 200 |
-| `POST` | `/tasks` | Cria uma tarefa | 201 |
-| `GET` | `/tasks/{id}` | Consulta uma tarefa pelo UUID | 200 |
-| `PUT` | `/tasks/{id}` | Edita uma tarefa (todos os campos) | 200 |
-| `PATCH` | `/tasks/{id}/complete` | Marca como concluída (`DONE`) | 200 |
-| `PATCH` | `/tasks/{id}/reopen` | Reabre (volta para `PENDENT`) | 200 |
-| `DELETE` | `/tasks/{id}` | Exclui uma tarefa | 200 |
-| `GET` | `/dashboard` | Total de tarefas e quantidade por status | 200 |
-
-### Campos da tarefa
-
-| Campo | Tipo | Regras |
-|---|---|---|
-| `id` | UUID | Gerado pelo servidor. Se vier no corpo, é ignorado |
-| `title` | texto | Obrigatório, até 150 caracteres. Espaços nas pontas são removidos |
-| `description` | texto | Opcional |
-| `priority` | `LOW`, `MEDIUM`, `HIGH` | Obrigatória |
-| `status` | `PENDENT`, `ON_GOING`, `DONE` | Opcional no cadastro (padrão `PENDENT`) e obrigatório na edição |
-| `dueDate` | data (`AAAA-MM-DD`) | Opcional |
-| `createdAt`, `updatedAt` | data e hora (UTC) | Preenchidos pelo servidor |
-
-### Parâmetros da listagem (`GET /tasks`)
-
-| Parâmetro | Valores | Padrão |
-|---|---|---|
-| `title` | Parte do título, sem diferenciar maiúsculas de minúsculas | — |
-| `status` | `PENDENT`, `ON_GOING`, `DONE` | — |
-| `priority` | `LOW`, `MEDIUM`, `HIGH` | — |
-| `sort` | `TITLE`, `DUE_DATE`, `CREATED_AT` | `CREATED_AT` |
-| `direction` | `ASC`, `DESC` | `DESC` |
-| `page` | 0 ou mais (começa em 0) | `0` |
-| `size` | De 1 a 100 | `10` |
-
-### Contrato de resposta
-
-Todas as respostas, inclusive as de erro, usam o mesmo envelope:
+Todas as respostas com corpo seguem o contrato JSON, com `Content-Type: application/json` e o campo `code` igual ao status HTTP:
 
 ```json
 {
@@ -251,31 +208,61 @@ Todas as respostas, inclusive as de erro, usam o mesmo envelope:
   "code": 200,
   "message": "Tarefa encontrada",
   "payload": { },
-  "timestamp": "2026-11-01T17:35:11.247Z",
+  "timestamp": "2026-11-01T14:30:00.123Z",
   "error": false
 }
 ```
 
-| Situação | Código | `message` | `payload` |
+| Método | Rota | Descrição | Sucesso |
 |---|---|---|---|
-| Campos inválidos | 400 | `Dados inválidos` | Mapa com o campo e a mensagem do erro |
-| UUID malformado na URL | 400 | `Identificador inválido: informe um UUID válido` | `null` |
-| JSON malformado ou enum inválido | 400 | `Corpo da requisição inválido: verifique o JSON e os valores enviados` | `null` |
-| Tarefa inexistente | 404 | `Tarefa não encontrada: {id}` | `null` |
-| Rota inexistente | 404 | `Recurso não encontrado` | `null` |
-| Método não suportado | 405 | `Método HTTP não suportado para este recurso` | `null` |
-| Erro inesperado | 500 | `Erro interno do servidor`, sem detalhes internos (o erro vai para o log) | `null` |
+| `POST` | `/api/tasks` | Cadastra uma tarefa | 201 |
+| `GET` | `/api/tasks` | Lista com filtros, ordenação e paginação | 200 |
+| `GET` | `/api/tasks/{id}` | Consulta uma tarefa pelo UUID | 200 |
+| `PUT` | `/api/tasks/{id}` | Edita título, descrição, prioridade, status e vencimento | 200 |
+| `PATCH` | `/api/tasks/{id}/complete` | Conclui a tarefa (status `DONE`) | 200 |
+| `PATCH` | `/api/tasks/{id}/reopen` | Reabre a tarefa (status `PENDENT`) | 200 |
+| `DELETE` | `/api/tasks/{id}` | Exclui a tarefa | 200 |
+| `GET` | `/api/dashboard` | Total de tarefas e totais por status | 200 |
+
+**Parâmetros da listagem** (todos opcionais e combináveis):
+
+| Parâmetro | Valores | Padrão |
+|---|---|---|
+| `title` | Busca parcial, sem diferenciar maiúsculas e minúsculas | |
+| `status` | `PENDENT`, `ON_GOING`, `DONE` | |
+| `priority` | `LOW`, `MEDIUM`, `HIGH` | |
+| `sort` | `TITLE`, `CREATED_AT`, `DUE_DATE` | `CREATED_AT` |
+| `direction` | `ASC`, `DESC` | `DESC` |
+| `page` | A partir de `0` | `0` |
+| `size` | De `1` a `100` | `10` |
+
+**Erros:**
+
+| Situação | HTTP | `payload` |
+|---|---|---|
+| Campo inválido no corpo (ex.: título vazio) | 400 | `{ "campo": "mensagem" }` |
+| UUID malformado (ex.: `/api/tasks/abc`) | 400 | `null` |
+| JSON malformado ou valor de enum inexistente | 400 | `null` |
+| UUID válido, mas inexistente | 404 | `null` |
+| Rota inexistente | 404 | `null` |
+| Método não suportado | 405 | `null` |
+| `Content-Type` diferente de JSON | 415 | `null` |
+| Erro inesperado | 500 | `null` (o detalhe vai só para o log) |
+
+A documentação interativa, com exemplos de cada resposta, está no **Swagger UI**: http://localhost:8080/swagger-ui.html.
+
+---
 
 ## Exemplos de chamadas
 
-As respostas abaixo foram capturadas da API rodando. O UUID e as datas variam a cada execução.
+Os exemplos usam `curl` no bash (Linux, macOS ou Git Bash no Windows).
 
-**Criar uma tarefa**
+**Cadastrar uma tarefa:**
 
 ```bash
-curl -X POST http://localhost:8080/api/tasks \
+curl -i -X POST http://localhost:8080/api/tasks \
   -H "Content-Type: application/json" \
-  -d '{"title":"Exemplo do README","description":"Criada pelo curl","priority":"HIGH","dueDate":"2026-12-31"}'
+  -d '{"title":"Estudar Spring Boot","description":"Revisar o capítulo de JPA","priority":"HIGH","dueDate":"2026-12-31"}'
 ```
 
 ```json
@@ -284,24 +271,24 @@ curl -X POST http://localhost:8080/api/tasks \
   "code": 201,
   "message": "Tarefa criada com sucesso",
   "payload": {
-    "id": "b1e093fa-4b9a-4236-9049-1ab140572fb2",
-    "title": "Exemplo do README",
-    "description": "Criada pelo curl",
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "title": "Estudar Spring Boot",
+    "description": "Revisar o capítulo de JPA",
     "priority": "HIGH",
     "status": "PENDENT",
     "dueDate": "2026-12-31",
-    "createdAt": "2026-11-01T17:35:10.312495686Z",
-    "updatedAt": "2026-11-01T17:35:10.312495686Z"
+    "createdAt": "2026-11-01T14:30:00.123Z",
+    "updatedAt": "2026-11-01T14:30:00.123Z"
   },
-  "timestamp": "2026-11-01T17:35:10.551922322Z",
+  "timestamp": "2026-11-01T14:30:00.130Z",
   "error": false
 }
 ```
 
-**Listar com busca e paginação**
+**Listar com filtros combinados, ordenação e paginação:**
 
 ```bash
-curl "http://localhost:8080/api/tasks?title=exemplo&status=PENDENT&sort=TITLE&direction=ASC&page=0&size=5"
+curl "http://localhost:8080/api/tasks?title=estudar&status=PENDENT&priority=HIGH&sort=DUE_DATE&direction=ASC&page=0&size=5"
 ```
 
 ```json
@@ -310,54 +297,34 @@ curl "http://localhost:8080/api/tasks?title=exemplo&status=PENDENT&sort=TITLE&di
   "code": 200,
   "message": "Tarefas listadas com sucesso",
   "payload": {
-    "items": [
-      {
-        "id": "b1e093fa-4b9a-4236-9049-1ab140572fb2",
-        "title": "Exemplo do README",
-        "description": "Criada pelo curl",
-        "priority": "HIGH",
-        "status": "PENDENT",
-        "dueDate": "2026-12-31",
-        "createdAt": "2026-11-01T17:35:10.312496Z",
-        "updatedAt": "2026-11-01T17:35:10.312496Z"
-      }
-    ],
+    "items": [ { "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "title": "Estudar Spring Boot", "...": "..." } ],
     "page": 0,
     "size": 5,
     "totalItems": 1,
     "totalPages": 1
   },
-  "timestamp": "2026-11-01T17:35:11.247498082Z",
+  "timestamp": "2026-11-01T14:31:00.000Z",
   "error": false
 }
 ```
 
-**Concluir e reabrir**
+**Consultar, editar, concluir, reabrir e excluir** (troque `$ID` pelo UUID retornado no cadastro):
 
 ```bash
-curl -X PATCH http://localhost:8080/api/tasks/{id}/complete   # status -> DONE
-curl -X PATCH http://localhost:8080/api/tasks/{id}/reopen     # status -> PENDENT
-```
+ID=3fa85f64-5717-4562-b3fc-2c963f66afa6
 
-**Editar**
+curl http://localhost:8080/api/tasks/$ID
 
-```bash
-curl -X PUT http://localhost:8080/api/tasks/{id} \
+curl -X PUT http://localhost:8080/api/tasks/$ID \
   -H "Content-Type: application/json" \
-  -d '{"title":"Título novo","priority":"MEDIUM","status":"ON_GOING","dueDate":null}'
+  -d '{"title":"Estudar Spring Boot 4","description":null,"priority":"MEDIUM","status":"ON_GOING","dueDate":null}'
+
+curl -X PATCH http://localhost:8080/api/tasks/$ID/complete
+curl -X PATCH http://localhost:8080/api/tasks/$ID/reopen
+curl -X DELETE http://localhost:8080/api/tasks/$ID
 ```
 
-**Excluir**
-
-```bash
-curl -X DELETE http://localhost:8080/api/tasks/{id}
-```
-
-```json
-{ "status": "OK", "code": 200, "message": "Tarefa excluída com sucesso", "payload": null, "timestamp": "2026-11-01T17:35:12.086243552Z", "error": false }
-```
-
-**Dashboard**
+**Dashboard:**
 
 ```bash
 curl http://localhost:8080/api/dashboard
@@ -368,83 +335,113 @@ curl http://localhost:8080/api/dashboard
   "status": "OK",
   "code": 200,
   "message": "Dashboard carregado com sucesso",
-  "payload": { "total": 5, "byStatus": { "PENDENT": 3, "ON_GOING": 1, "DONE": 1 } },
-  "timestamp": "2026-11-01T17:35:12.211146663Z",
+  "payload": { "total": 4, "byStatus": { "PENDENT": 2, "ON_GOING": 1, "DONE": 1 } },
+  "timestamp": "2026-11-01T14:32:00.000Z",
   "error": false
 }
 ```
 
-**Erro de validação**
+**Erros:**
 
 ```bash
-curl -X POST http://localhost:8080/api/tasks -H "Content-Type: application/json" -d '{"title":""}'
+# Título vazio → 400 com o detalhe por campo
+curl -X POST http://localhost:8080/api/tasks -H "Content-Type: application/json" -d '{"title":"","priority":"LOW"}'
+# {"status":"BAD_REQUEST","code":400,"message":"Dados inválidos","payload":{"title":"O título é obrigatório"},...,"error":true}
+
+# UUID malformado → 400
+curl http://localhost:8080/api/tasks/abc
+# {"status":"BAD_REQUEST","code":400,"message":"Identificador inválido: informe um UUID válido","payload":null,...,"error":true}
+
+# UUID válido e inexistente → 404
+curl http://localhost:8080/api/tasks/00000000-0000-0000-0000-000000000000
+# {"status":"NOT_FOUND","code":404,"message":"Tarefa não encontrada: 00000000-...","payload":null,...,"error":true}
 ```
 
-```json
-{
-  "status": "BAD_REQUEST",
-  "code": 400,
-  "message": "Dados inválidos",
-  "payload": { "priority": "A prioridade é obrigatória", "title": "O título é obrigatório" },
-  "timestamp": "2026-11-01T17:35:11.667495387Z",
-  "error": true
-}
-```
+---
 
-**Tarefa inexistente**
+## Funcionalidades concluídas
 
-```json
-{
-  "status": "NOT_FOUND",
-  "code": 404,
-  "message": "Tarefa não encontrada: 00000000-0000-0000-0000-000000000000",
-  "payload": null,
-  "timestamp": "2026-11-01T17:35:11.835445039Z",
-  "error": true
-}
-```
+### Requisitos obrigatórios
+- [x] Cadastro com título obrigatório, descrição opcional, prioridade (`LOW`, `MEDIUM`, `HIGH`), status (`PENDENT`, `ON_GOING`, `DONE`) e vencimento opcional
+- [x] Consulta individual pelo UUID
+- [x] Edição de título, descrição, prioridade, vencimento e status
+- [x] Concluir e reabrir tarefas
+- [x] Exclusão, com 404 quando o recurso não existe
+- [x] Listagem com busca parcial por título, filtros de status e prioridade, ordenação por título, criação ou vencimento, e paginação no servidor, com filtros combináveis
+- [x] Dashboard com o total e os totais por status
+- [x] UUID gerado pelo backend (`java.util.UUID` e tipo nativo `UUID` no PostgreSQL 18); 400 para UUID malformado e 404 para inexistente
+- [x] Onion Architecture, DTOs, validação de entrada e tratamento centralizado de exceções
+- [x] Contrato JSON em todas as respostas com corpo, inclusive nos erros, sem expor detalhes internos
+- [x] Frontend com Angular Material (MatTable, MatPaginator, MatSort, MatFormField, MatSelect, MatDialog, MatCard), roteamento e Reactive Forms com validação
+- [x] Estados de carregamento, erro, ausência de dados e confirmação; layout responsivo
+- [x] Dockerfile do backend, Dockerfile do frontend e `docker-compose.yml` com Angular, Spring Boot e PostgreSQL 18
+- [x] Variáveis de ambiente, volume persistente e `.env.example`, sem segredos versionados
+
+### Diferenciais
+- [x] Testes unitários com JUnit 5 e Mockito
+- [x] Cenários de comportamento executáveis com Cucumber e Gherkin
+- [x] Testes Angular (Vitest)
+- [x] Documentação da API com OpenAPI e Swagger UI
+- [x] Migrations com Flyway
+- [x] Dockerfiles multi-stage
+
+### Extras
+- Cards do dashboard clicáveis, que abrem a listagem já filtrada (`/tasks?status=DONE`)
+- Barra de progresso com o percentual de tarefas concluídas
+- Snackbar de sucesso nas operações e diálogo de confirmação antes de excluir
+- No celular, a listagem mostra menos colunas e agrupa as ações num menu
+- Interface em português: datas, paginador e datepicker (dd/mm/aaaa)
+
+---
 
 ## Decisões técnicas
 
-- **Domínio sem framework.** A entidade `Task` valida as próprias regras: título obrigatório e aparado, até 150 caracteres, prioridade e status obrigatórios. Também concentra as transições de status (`complete` vai para `DONE`, `reopen` volta para `PENDENT`). A validação dos DTOs devolve mensagens por campo, e o domínio garante a regra mesmo se outro ponto de entrada for criado.
-- **UUID gerado no servidor.** O identificador nasce no domínio (`Task.create`). Um `id` enviado no corpo é ignorado, e há um cenário BDD que garante isso.
-- **Schema versionado com Flyway.** O Hibernate roda com `ddl-auto: validate`: só confere se as entidades batem com o banco, e quem cria e altera tabelas são as migrations. A tabela tem `CHECK` para prioridade e status, além de índices nas colunas usadas em filtros e ordenação.
-- **Busca e filtros com Specifications.** A busca por título usa `lower(title) LIKE '%termo%'`, e os caracteres `%` e `_` digitados pelo usuário são escapados e tratados como texto. Os filtros só entram na consulta quando são informados.
-- **Ordenação estável.** Toda ordenação recebe o `id` como desempate. Sem isso, tarefas com o mesmo título ou a mesma data poderiam trocar de página entre uma requisição e outra.
-- **Paginação no servidor**, com o tamanho limitado a 100 itens, para que a listagem continue rápida com qualquer volume de dados.
-- **Contrato único de resposta.** Sucesso e erro usam o mesmo envelope (`status`, `code`, `message`, `payload`, `timestamp`, `error`). O `GlobalExceptionHandler` converte todos os erros, inclusive os do próprio Spring (rota inexistente, método não suportado, JSON inválido), e nunca expõe stack trace.
-- **Dashboard com uma consulta só.** A contagem por status usa um `GROUP BY`, e os status sem tarefas aparecem com zero.
-- **Frontend com Signals e componentes standalone.** O estado das telas fica em signals. O `switchMap` cancela buscas antigas quando o filtro muda, e o debounce de 400 ms evita uma chamada por tecla. Um interceptor converte qualquer erro HTTP em `ApiError` com mensagem amigável, inclusive quando o servidor está fora do ar.
-- **Telas sob demanda.** Cada rota usa `loadComponent`, então o navegador baixa o código de uma tela só quando ela é aberta.
-- **Docker multi-stage.** As imagens finais levam só o necessário: o JRE e o jar no backend, e o nginx com os arquivos estáticos no frontend. O backend roda com um usuário sem privilégios (`app`). O nginx faz o proxy de `/api`, o fallback do SPA (F5 em qualquer rota funciona) e o cache longo dos arquivos com hash no nome.
-- **Testes de integração com banco real.** Os testes com Cucumber e Testcontainers rodam contra um PostgreSQL 18 de verdade, igual ao de produção. Assim, eles pegam diferenças de SQL que um banco em memória esconderia.
+- **`PUT` para edição e `PATCH` para concluir e reabrir.** O `PUT` substitui todos os campos editáveis, por isso o `status` é obrigatório nele. Concluir e reabrir são ações pontuais, com rotas próprias, e não exigem enviar a tarefa inteira.
+- **`DELETE` responde 200 com `payload: null`, e não 204.** O contrato do desafio pede corpo JSON nas respostas; um 204 não pode ter corpo, então a confirmação da exclusão vem no `message`.
+- **O id do corpo é ignorado no cadastro e na edição.** Os DTOs não têm o campo `id`, e o UUID da edição vem sempre da URL. Assim, o cliente não consegue definir nem alterar o identificador.
+- **Os objetos de consulta ficam no domínio** (`domain/query`). Filtros, ordenação e paginação são conceitos do negócio, independentes do Spring Data; o adaptador traduz `TaskQuery` para `Specification` e `Pageable`.
+- **A ordenação tem um critério de desempate pelo `id`.** Sem ele, tarefas com o mesmo título ou a mesma data podiam trocar de posição entre páginas.
+- **O LIKE da busca escapa `%` e `_`.** Buscar `100%` procura o texto literal, e não "qualquer coisa que comece com 100".
+- **`size` é limitado a 100**, para que uma requisição não peça a tabela inteira.
+- **`open-in-view: false`.** A sessão do banco não fica aberta durante a serialização da resposta.
+- **No Docker, o frontend chama a API pelo proxy do nginx** (`/api`), na mesma origem. Fora do Docker (`ng serve`), chama `http://localhost:8080/api`, e por isso a API tem o CORS configurável.
 
-## Estrutura do repositório
+---
 
+## Limitações conhecidas
+
+- **Não há autenticação nem separação por usuário**: todas as tarefas são visíveis para quem acessa a aplicação. O desafio não pede isso.
+- **A busca por título usa `lower(title) LIKE '%termo%'`**, que não aproveita índice B-tree. Para volumes grandes, um índice com a extensão `pg_trgm` resolveria.
+- **Não há controle de concorrência otimista** (`@Version`): se duas pessoas editarem a mesma tarefa ao mesmo tempo, vale a última gravação.
+- **O 403 de uma requisição CORS de origem não permitida sai em texto puro**, fora do contrato JSON. Ele é gerado pelo filtro de CORS do Spring antes de a requisição chegar ao controller. No uso normal (Docker com proxy, ou `ng serve` na origem permitida), isso não acontece.
+- **Tarefas sem vencimento ficam no fim na ordenação crescente por vencimento, e no início na decrescente**, que é o comportamento padrão do PostgreSQL para `NULL`.
+- **Os testes de integração e o Cucumber precisam do Docker rodando** (Testcontainers), e por isso não rodam dentro do build das imagens.
+- **Não há testes end-to-end** do frontend (Playwright ou Cypress); os testes Angular são de componente e de serviço.
+- **A interface existe só em português**, sem internacionalização.
+
+---
+
+## Executando sem Docker (desenvolvimento)
+
+**Pré-requisitos:** Java 25, Node 22.22+ ou 24.15+, e o Docker (só para o banco).
+
+```bash
+# 1. Banco de dados
+cp .env.example .env
+docker compose up -d postgres
+
+# 2. API (lê o .env da raiz automaticamente)
+cd backend
+./mvnw spring-boot:run          # http://localhost:8080
+
+# 3. Frontend, em outro terminal
+cd frontend
+npm ci
+npx ng serve                    # http://localhost:4200
 ```
-.
-├── backend/                  API Spring Boot
-│   ├── src/main/java/com/adler/todolist/
-│   │   ├── domain/           entidade, regras, consultas, interface do repositório
-│   │   ├── application/      casos de uso
-│   │   ├── infrastructure/   JPA, CORS, OpenAPI
-│   │   └── web/              controllers, DTOs, respostas, erros
-│   ├── src/main/resources/
-│   │   ├── application.yaml
-│   │   └── db/migration/     migrations do Flyway
-│   ├── src/test/             testes unitários, de integração e BDD
-│   └── Dockerfile
-├── frontend/                 aplicação Angular
-│   ├── src/app/
-│   │   ├── core/             serviços, modelos, interceptor, i18n
-│   │   ├── features/         dashboard e telas de tarefas
-│   │   └── shared/           diálogo de confirmação
-│   ├── nginx.conf
-│   └── Dockerfile
-├── docker-compose.yml        banco + API + interface
-└── .env.example              modelo das variáveis de ambiente
-```
+
+---
 
 ## Licença
 
-Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE).
+[MIT](LICENSE)
