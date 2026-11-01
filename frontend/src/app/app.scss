@@ -33,3 +33,14 @@ nav {
     display: none;
   }
 }
+
+// Em telas de celular, os botões da barra mostram só o ícone para não alargar a página.
+@media (max-width: 480px) {
+  .label {
+    display: none;
+  }
+
+  nav a mat-icon {
+    margin: 0;
+  }
+}

@@ -1,1 +1,96 @@
-<p>task-form works!</p>
+<a mat-button [routerLink]="isEdit() ? ['/tasks', id()] : ['/tasks']" class="back">
+  <mat-icon>arrow_back</mat-icon>
+  {{ isEdit() ? 'Voltar para a tarefa' : 'Voltar para a lista' }}
+</a>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (loadFailed()) {
+  <div class="state" role="alert">
+    <mat-icon class="state-icon">search_off</mat-icon>
+    <h1>Não foi possível carregar a tarefa</h1>
+    <p>{{ errorMessage() }}</p>
+    <a mat-flat-button routerLink="/tasks">Voltar para a lista</a>
+  </div>
+} @else {
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>
+        <h1>{{ isEdit() ? 'Editar tarefa' : 'Nova tarefa' }}</h1>
+      </mat-card-title>
+    </mat-card-header>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-card-content>
+        @if (errorMessage(); as message) {
+          <div class="error" role="alert">
+            <mat-icon>error</mat-icon>
+            <span>{{ message }}</span>
+          </div>
+        }
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Título</mat-label>
+          <input matInput formControlName="title" [maxlength]="titleMaxLength" required />
+          <mat-hint align="end">{{ form.controls.title.value.length }} / {{ titleMaxLength }}</mat-hint>
+          @if (errorFor('title'); as message) {
+            <mat-error>{{ message }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Descrição</mat-label>
+          <textarea matInput formControlName="description" rows="4"></textarea>
+          <mat-hint>Opcional</mat-hint>
+        </mat-form-field>
+
+        <div class="row">
+          <mat-form-field appearance="outline">
+            <mat-label>Prioridade</mat-label>
+            <mat-select formControlName="priority" required>
+              @for (option of priorities; track option[0]) {
+                <mat-option [value]="option[0]">{{ option[1] }}</mat-option>
+              }
+            </mat-select>
+            @if (errorFor('priority'); as message) {
+              <mat-error>{{ message }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status" required>
+              @for (option of statuses; track option[0]) {
+                <mat-option [value]="option[0]">{{ option[1] }}</mat-option>
+              }
+            </mat-select>
+            @if (errorFor('status'); as message) {
+              <mat-error>{{ message }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Vencimento</mat-label>
+            <input matInput [matDatepicker]="picker" formControlName="dueDate" placeholder="dd/mm/aaaa" />
+            <mat-datepicker-toggle matIconSuffix [for]="picker" />
+            <mat-datepicker #picker />
+            <mat-hint>Opcional</mat-hint>
+            @if (errorFor('dueDate'); as message) {
+              <mat-error>{{ message }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <a mat-button [routerLink]="isEdit() ? ['/tasks', id()] : ['/tasks']">Cancelar</a>
+        <button mat-flat-button type="submit" [disabled]="saving() || loading()">
+          <mat-icon>save</mat-icon>
+          {{ saving() ? 'Salvando...' : isEdit() ? 'Salvar alterações' : 'Criar tarefa' }}
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+}
