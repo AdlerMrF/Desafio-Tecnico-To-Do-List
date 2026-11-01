@@ -1,9 +1,79 @@
-import { Component } from '@angular/core';
+import { DatePipe, LowerCasePipe } from '@angular/common';
+import { Component, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { Router, RouterLink } from '@angular/router';
+import { catchError, of, switchMap, tap } from 'rxjs';
+import { ApiError } from '../../../core/models/api-error';
+import { PRIORITY_LABELS, STATUS_LABELS, Task } from '../../../core/models/task';
+import { TaskService } from '../../../core/services/task-service';
 
 @Component({
-  imports: [],
   selector: 'app-task-detail',
-  styleUrl: './task-detail.scss',
+  imports: [DatePipe, LowerCasePipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule],
   templateUrl: './task-detail.html',
+  styleUrl: './task-detail.scss',
 })
-export class TaskDetail {}
+export class TaskDetail {
+  private readonly taskService = inject(TaskService);
+  private readonly router = inject(Router);
+
+  /** UUID da rota /tasks/:id, entregue pelo withComponentInputBinding. */
+  readonly id = input.required<string>();
+
+  protected readonly priorityLabels = PRIORITY_LABELS;
+  protected readonly statusLabels = STATUS_LABELS;
+
+  protected readonly task = signal<Task | null>(null);
+  protected readonly loading = signal(true);
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly notFound = signal(false);
+
+  constructor() {
+    toObservable(this.id)
+      .pipe(
+        tap(() => {
+          this.loading.set(true);
+          this.errorMessage.set(null);
+          this.notFound.set(false);
+        }),
+        switchMap((id) =>
+          this.taskService.getById(id).pipe(
+            catchError((error: ApiError) => {
+              this.notFound.set(error.code === 404);
+              this.errorMessage.set(error.message);
+              return of(null);
+            }),
+          ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((task) => {
+        this.loading.set(false);
+        this.task.set(task);
+      });
+  }
+
+  protected toggleStatus(task: Task): void {
+    const action = task.status === 'DONE' ? this.taskService.reopen(task.id) : this.taskService.complete(task.id);
+    this.errorMessage.set(null);
+    action.subscribe({
+      next: (updated) => this.task.set(updated),
+      error: (error: ApiError) => this.errorMessage.set(error.message),
+    });
+  }
+
+  protected remove(task: Task): void {
+    // Provisório: o cartão 23 troca o confirm do navegador por um MatDialog.
+    if (!confirm(`Excluir a tarefa "${task.title}"?`)) {
+      return;
+    }
+    this.taskService.delete(task.id).subscribe({
+      next: () => this.router.navigate(['/tasks']),
+      error: (error: ApiError) => this.errorMessage.set(error.message),
+    });
+  }
+}
