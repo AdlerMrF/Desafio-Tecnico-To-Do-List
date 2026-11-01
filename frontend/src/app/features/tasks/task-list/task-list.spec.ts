@@ -88,4 +88,29 @@ describe('TaskList', () => {
 
     expect(element.querySelector('[role="alert"]')?.textContent).toContain('Requisição inválida');
   });
+
+  it('deve já abrir filtrada pelo status que vem da URL (?status=DONE)', async () => {
+    // Descarta a busca do componente criado no beforeEach.
+    http.expectOne((r) => r.url.endsWith('/tasks')).flush(pageOf([]));
+
+    const filtered = TestBed.createComponent(TaskList);
+    filtered.componentRef.setInput('status', 'DONE');
+    await filtered.whenStable();
+
+    const req = http.expectOne((r) => r.url.endsWith('/tasks'));
+    expect(req.request.params.get('status')).toBe('DONE');
+    req.flush(pageOf([]));
+  });
+
+  it('deve ignorar um status inválido na URL', async () => {
+    http.expectOne((r) => r.url.endsWith('/tasks')).flush(pageOf([]));
+
+    const filtered = TestBed.createComponent(TaskList);
+    filtered.componentRef.setInput('status', 'QUALQUER');
+    await filtered.whenStable();
+
+    const req = http.expectOne((r) => r.url.endsWith('/tasks'));
+    expect(req.request.params.has('status')).toBe(false);
+    req.flush(pageOf([]));
+  });
 });
