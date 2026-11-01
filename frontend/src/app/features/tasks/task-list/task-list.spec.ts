@@ -6,6 +6,9 @@ import { apiErrorInterceptor } from '../../../core/interceptors/api-error-interc
 import { ApiResponse } from '../../../core/models/api-response';
 import { Page } from '../../../core/models/page';
 import { Task } from '../../../core/models/task';
+import { of } from 'rxjs';
+import { ConfirmService } from '../../../core/services/confirm-service';
+import { NotificationService } from '../../../core/services/notification-service';
 import { TaskList } from './task-list';
 
 function task(id: string, title: string, overrides: Partial<Task> = {}): Task {
@@ -112,5 +115,36 @@ describe('TaskList', () => {
     const req = http.expectOne((r) => r.url.endsWith('/tasks'));
     expect(req.request.params.has('status')).toBe(false);
     req.flush(pageOf([]));
+  });
+
+  it('deve excluir só depois da confirmação no diálogo e avisar com o snackbar', async () => {
+    http.expectOne((r) => r.url.endsWith('/tasks')).flush(pageOf([task('1', 'Estudar Angular')]));
+    await fixture.whenStable();
+
+    const confirm = vi.spyOn(TestBed.inject(ConfirmService), 'confirmDelete').mockReturnValue(of(true));
+    const success = vi.spyOn(TestBed.inject(NotificationService), 'success').mockImplementation(() => undefined);
+
+    element.querySelector<HTMLButtonElement>('button[aria-label="Excluir"]')!.click();
+
+    expect(confirm).toHaveBeenCalledWith('Estudar Angular');
+    http.expectOne((r) => r.method === 'DELETE' && r.url.endsWith('/tasks/1')).flush({
+      status: 'OK', code: 200, message: 'Tarefa excluída', payload: null, timestamp: '', error: false,
+    });
+    await fixture.whenStable();
+
+    expect(success).toHaveBeenCalledWith('Tarefa excluída');
+    // Depois de excluir, a lista é buscada de novo.
+    http.expectOne((r) => r.method === 'GET' && r.url.endsWith('/tasks')).flush(pageOf([]));
+  });
+
+  it('não deve excluir quando o usuário cancela o diálogo', async () => {
+    http.expectOne((r) => r.url.endsWith('/tasks')).flush(pageOf([task('1', 'Estudar Angular')]));
+    await fixture.whenStable();
+
+    vi.spyOn(TestBed.inject(ConfirmService), 'confirmDelete').mockReturnValue(of(false));
+
+    element.querySelector<HTMLButtonElement>('button[aria-label="Excluir"]')!.click();
+
+    http.expectNone((r) => r.method === 'DELETE');
   });
 });

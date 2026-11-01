@@ -15,6 +15,7 @@ import { EMPTY, catchError, of, switchMap, tap } from 'rxjs';
 import { PtBrDateAdapter } from '../../../core/i18n/pt-br-date-adapter';
 import { ApiError } from '../../../core/models/api-error';
 import { PRIORITY_LABELS, Priority, STATUS_LABELS, Task, TaskRequest, TaskStatus } from '../../../core/models/task';
+import { NotificationService } from '../../../core/services/notification-service';
 import { TaskService } from '../../../core/services/task-service';
 
 /** Mesmo limite do @Size(max = 150) do backend. */
@@ -66,6 +67,7 @@ export class TaskForm {
   private readonly taskService = inject(TaskService);
   private readonly router = inject(Router);
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly notification = inject(NotificationService);
 
   /** UUID da rota /tasks/:id/edit. Em /tasks/new não existe, e o formulário fica no modo cadastro. */
   readonly id = input<string>();
@@ -132,7 +134,10 @@ export class TaskForm {
     this.saving.set(true);
     this.errorMessage.set(null);
     save.subscribe({
-      next: (task) => this.router.navigate(['/tasks', task.id]),
+      next: (task) => {
+        this.notification.success(id ? 'Tarefa atualizada' : 'Tarefa criada');
+        this.router.navigate(['/tasks', task.id]);
+      },
       error: (error: ApiError) => {
         this.saving.set(false);
         this.errorMessage.set(error.message);
