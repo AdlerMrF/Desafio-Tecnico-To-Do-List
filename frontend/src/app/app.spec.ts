@@ -7,20 +7,23 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideRouter([])],
-    })
-      .compileComponents();
+    }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it('should render brand in toolbar', async () => {
+  it('deve mostrar o nome da aplicação na barra superior', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.brand')?.textContent).toContain('To-Do List');
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('.brand')?.textContent).toContain('To-Do List');
+  });
+
+  it('deve ter os links para o dashboard, a listagem e o cadastro', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const hrefs = Array.from(element.querySelectorAll('nav a')).map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/', '/tasks', '/tasks/new']);
   });
 });
