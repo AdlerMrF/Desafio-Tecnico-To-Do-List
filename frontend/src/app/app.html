@@ -2,17 +2,17 @@
   <span class="brand">To-Do List</span>
   <span class="spacer"></span>
   <nav>
-    <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+    <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" aria-label="Dashboard">
       <mat-icon>dashboard</mat-icon>
-      Dashboard
+      <span class="label">Dashboard</span>
     </a>
-    <a mat-button routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+    <a mat-button routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" aria-label="Tarefas">
       <mat-icon>list</mat-icon>
-      Tarefas
+      <span class="label">Tarefas</span>
     </a>
-    <a mat-flat-button routerLink="/tasks/new">
+    <a mat-flat-button routerLink="/tasks/new" aria-label="Nova tarefa">
       <mat-icon>add</mat-icon>
-      Nova tarefa
+      <span class="label">Nova tarefa</span>
     </a>
   </nav>
 </mat-toolbar>
