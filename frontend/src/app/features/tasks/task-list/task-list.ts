@@ -1,5 +1,5 @@
 import { DatePipe, LowerCasePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -50,8 +50,11 @@ const DEFAULT_QUERY: TaskQuery = { page: 0, size: 10, sort: 'CREATED_AT', direct
   templateUrl: './task-list.html',
   styleUrl: './task-list.scss',
 })
-export class TaskList {
+export class TaskList implements OnInit {
   private readonly taskService = inject(TaskService);
+
+  /** Filtro de status vindo da URL (/tasks?status=DONE), usado pelos cards do dashboard. */
+  readonly status = input<string>();
 
   protected readonly columns = ['title', 'priority', 'status', 'dueDate', 'createdAt', 'actions'];
   // Record<string, string>: a linha da tabela (let task) chega ao template sem tipo.
@@ -110,6 +113,15 @@ export class TaskList {
           this.totalItems.set(page.totalItems);
         }
       });
+  }
+
+  ngOnInit(): void {
+    // Inputs só têm valor a partir do ngOnInit; aqui ainda dá tempo de ajustar a primeira busca.
+    const status = this.status() as TaskStatus | undefined;
+    if (status && status in STATUS_LABELS) {
+      this.filters.patchValue({ status }, { emitEvent: false });
+      this.query.update((q) => ({ ...q, status }));
+    }
   }
 
   protected onPage(event: PageEvent): void {
