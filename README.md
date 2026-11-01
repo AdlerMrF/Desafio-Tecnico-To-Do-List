@@ -17,15 +17,35 @@ Desenvolvida para o desafio técnico de estágio Full Stack da **Place Tecnologi
 
 ## Sumário
 
-1. [Como executar com Docker Compose](#como-executar-com-docker-compose)
-2. [Como rodar os testes](#como-rodar-os-testes)
-3. [Arquitetura](#arquitetura)
-4. [API REST](#api-rest)
-5. [Exemplos de chamadas](#exemplos-de-chamadas)
-6. [Funcionalidades concluídas](#funcionalidades-concluídas)
-7. [Decisões técnicas](#decisões-técnicas)
-8. [Limitações conhecidas](#limitações-conhecidas)
-9. [Executando sem Docker (desenvolvimento)](#executando-sem-docker-desenvolvimento)
+1. [Atendimento ao enunciado](#atendimento-ao-enunciado)
+2. [Como executar com Docker Compose](#como-executar-com-docker-compose)
+3. [Como rodar os testes](#como-rodar-os-testes)
+4. [Arquitetura](#arquitetura)
+5. [API REST](#api-rest)
+6. [Exemplos de chamadas](#exemplos-de-chamadas)
+7. [Funcionalidades concluídas](#funcionalidades-concluídas)
+8. [Decisões técnicas](#decisões-técnicas)
+9. [Limitações conhecidas](#limitações-conhecidas)
+10. [Executando sem Docker (desenvolvimento)](#executando-sem-docker-desenvolvimento)
+11. [Licença](#licença)
+
+---
+
+## Atendimento ao enunciado
+
+Cada seção do [enunciado](Desafio_Tecnico_Estagio_Fullstack_Place_ToDo_List.pdf) e onde ela é atendida:
+
+| Seção do enunciado | Como é atendida | Onde ver |
+|---|---|---|
+| 1. Tecnologias e infraestrutura | Java 25, Spring Boot 4.1, Angular 22 + Angular Material, PostgreSQL 18 com JPA, Docker Compose; todos os diferenciais | Tabela acima e [Como executar](#como-executar-com-docker-compose) |
+| 2. Requisitos funcionais | Cadastro, consulta, edição, concluir e reabrir, exclusão com 404, listagem com filtros combináveis no servidor e dashboard | [API REST](#api-rest) e [Funcionalidades concluídas](#funcionalidades-concluídas) |
+| 2.1. Identificação por UUID | `java.util.UUID` gerado no domínio, coluna `UUID` nativa, `id` do cliente ignorado; 400 para UUID malformado e 404 para inexistente | [Arquitetura](#arquitetura) e [Decisões técnicas](#decisões-técnicas) |
+| 3. Onion Architecture e API REST | Camadas `domain`, `application`, `infrastructure` e `web`, verificadas por ArchUnit; DTOs, Bean Validation, `GlobalExceptionHandler`; filtros e paginação no PostgreSQL | [Arquitetura](#arquitetura) |
+| 4. Contrato JSON | `ApiResponse` em todas as respostas com corpo, inclusive erros de validação, 404, 405, 415, 403 de CORS e 500 | [API REST](#api-rest) |
+| 5. Requisitos do frontend | Listagem, formulário e dashboard com MatTable, MatPaginator, MatSort, MatFormField, MatSelect, MatDialog e MatCard; Reactive Forms; `TaskService` separado; estados de carregamento, erro, vazio e confirmação; layout responsivo | [Arquitetura › Frontend](#frontend-1) e [frontend/README.md](frontend/README.md) |
+| 6. Docker e PostgreSQL | Dockerfiles multi-stage do backend e do frontend, `docker-compose.yml` com os 3 serviços, volume persistente, variáveis de ambiente com `.env.example` e nenhum segredo versionado; `docker compose up` sobe sem configuração | [Como executar](#como-executar-com-docker-compose) |
+| 7. Testes e diferenciais | JUnit 5 + Mockito, Cucumber/Gherkin (com o cenário do enunciado), testes Angular, Swagger e Flyway | [Como rodar os testes](#como-rodar-os-testes) |
+| 8. Entrega e documentação | Este README: execução, testes, arquitetura, exemplos, funcionalidades concluídas e limitações conhecidas | Este arquivo |
 
 ---
 
@@ -40,6 +60,8 @@ docker compose up --build
 ```
 
 O `docker compose up` funciona direto, sem configuração: sem o arquivo `.env`, o Compose usa os valores padrão (banco, usuário e senha `todolist`). Para trocar a senha ou as portas, crie o `.env` antes de subir: `cp .env.example .env` (no Windows, `copy .env.example .env`).
+
+> O PostgreSQL só aplica a senha quando o volume do banco é criado. Se o banco já subiu antes com outra senha, recrie o volume com `docker compose down -v` (isso apaga as tarefas) antes de subir com a senha nova.
 
 O primeiro build leva alguns minutos, porque baixa as imagens e as dependências do Maven e do npm. Depois disso:
 
@@ -63,7 +85,7 @@ docker compose down -v         # para tudo e apaga o banco
 
 ### Variáveis de ambiente
 
-As variáveis ficam no arquivo `.env`, criado a partir do `.env.example`. O `.env` não é versionado.
+Todas têm valor padrão, então o `.env` é opcional. Para mudar algum valor, crie o `.env` a partir do `.env.example`; ele não é versionado. O mesmo `.env` da raiz vale para o Docker Compose e para o backend rodando fora do Docker.
 
 | Variável | Padrão | Uso |
 |---|---|---|
@@ -99,7 +121,7 @@ Navegador ──► frontend (nginx :80, publicado em :4200)
 
 ```bash
 cd backend
-./mvnw test        # no Windows: mvnw test
+./mvnw test        # no Windows: mvnw test  →  52 testes
 ```
 
 **Pré-requisitos:** Java 25 e o **Docker rodando**, porque os testes de integração e os cenários do Cucumber sobem um PostgreSQL 18 real com Testcontainers.
@@ -109,7 +131,7 @@ cd backend
 | Unitários do domínio | JUnit 5 | Regras da entidade `Task`: título obrigatório, limite de 150 caracteres, concluir e reabrir |
 | Unitários dos casos de uso | JUnit 5 + Mockito | Cada caso de uso com o repositório simulado |
 | Web | JUnit 5 + Spring | Tratamento de erros, CORS (inclusive a recusa no contrato JSON), documentação OpenAPI e conversão dos filtros da listagem |
-| Arquitetura | ArchUnit | Falha o build se uma camada depender de outra fora da Onion Architecture, ou se o domínio ou a aplicação importarem Spring, JPA ou Servlet |
+| Arquitetura | ArchUnit | Falha o build se uma camada depender de outra fora da Onion Architecture, ou se o domínio ou a aplicação importarem Spring, JPA, Hibernate ou Servlet |
 | Transações | JUnit 5 + Spring | Os casos de uso recebem transação (somente leitura nas consultas) sem usar `@Transactional` |
 | Comportamento (BDD) | Cucumber + Testcontainers | 17 cenários em Gherkin, em português, contra a API e um PostgreSQL real |
 
@@ -412,7 +434,7 @@ curl http://localhost:8080/api/tasks/00000000-0000-0000-0000-000000000000
 - **`size` é limitado a 100**, para que uma requisição não peça a tabela inteira.
 - **`open-in-view: false`.** A sessão do banco não fica aberta durante a serialização da resposta.
 - **No Docker, o frontend chama a API pelo proxy do nginx** (`/api`), na mesma origem. Fora do Docker (`ng serve`), chama `http://localhost:8080/api`, e por isso a API tem o CORS configurável. Uma origem recusada recebe 403 no mesmo contrato JSON dos outros erros.
-- **Senha padrão só para desenvolvimento.** O `docker compose up` sobe sem nenhum arquivo extra, usando `todolist` como senha do banco local. O `.env` (não versionado) sobrescreve qualquer valor.
+- **Senha padrão só para desenvolvimento.** O `docker compose up` sobe sem nenhum arquivo extra, usando `todolist` como senha do banco local, como pede o enunciado. O `.env` (não versionado) sobrescreve qualquer valor.
 
 ---
 
@@ -433,11 +455,10 @@ curl http://localhost:8080/api/tasks/00000000-0000-0000-0000-000000000000
 **Pré-requisitos:** Java 25, Node 22.22+ ou 24.15+, e o Docker (só para o banco).
 
 ```bash
-# 1. Banco de dados
-cp .env.example .env
+# 1. Banco de dados (o .env é opcional; sem ele, valem os padrões)
 docker compose up -d postgres
 
-# 2. API (lê o .env da raiz automaticamente)
+# 2. API (lê o .env da raiz, se existir)
 cd backend
 ./mvnw spring-boot:run          # http://localhost:8080
 
