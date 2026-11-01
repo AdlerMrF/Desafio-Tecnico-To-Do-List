@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-todolist}
       POSTGRES_USER: ${DB_USER:-todolist}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Crie o arquivo .env a partir do .env.example}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-todolist}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
@@ -27,7 +27,7 @@ services:
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-todolist}
       DB_USER: ${DB_USER:-todolist}
-      DB_PASSWORD: ${DB_PASSWORD:?Crie o arquivo .env a partir do .env.example}
+      DB_PASSWORD: ${DB_PASSWORD:-todolist}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
