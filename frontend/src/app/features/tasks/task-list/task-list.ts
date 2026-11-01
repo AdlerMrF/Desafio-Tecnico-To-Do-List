@@ -1,11 +1,13 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { DatePipe, LowerCasePipe } from '@angular/common';
-import { Component, OnInit, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
@@ -13,11 +15,13 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { catchError, debounceTime, of, switchMap, tap } from 'rxjs';
+import { catchError, debounceTime, filter, map, of, switchMap, tap } from 'rxjs';
 import { ApiError } from '../../../core/models/api-error';
 import { Page } from '../../../core/models/page';
 import { Priority, PRIORITY_LABELS, STATUS_LABELS, Task, TaskStatus } from '../../../core/models/task';
 import { TaskQuery, TaskSortField } from '../../../core/models/task-query';
+import { ConfirmService } from '../../../core/services/confirm-service';
+import { NotificationService } from '../../../core/services/notification-service';
 import { TaskService } from '../../../core/services/task-service';
 
 /** Colunas da tabela que podem ser ordenadas, e o campo correspondente na API. */
@@ -40,6 +44,7 @@ const DEFAULT_QUERY: TaskQuery = { page: 0, size: 10, sort: 'CREATED_AT', direct
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatMenuModule,
     MatPaginatorModule,
     MatProgressBarModule,
     MatSelectModule,
@@ -52,11 +57,25 @@ const DEFAULT_QUERY: TaskQuery = { page: 0, size: 10, sort: 'CREATED_AT', direct
 })
 export class TaskList implements OnInit {
   private readonly taskService = inject(TaskService);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly notification = inject(NotificationService);
+
+  /** true em telas de até 600px: a tabela mostra menos colunas e as ações viram um menu. */
+  protected readonly isHandset = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 600px)')
+      .pipe(map((state) => state.matches)),
+    { initialValue: false },
+  );
 
   /** Filtro de status vindo da URL (/tasks?status=DONE), usado pelos cards do dashboard. */
   readonly status = input<string>();
 
-  protected readonly columns = ['title', 'priority', 'status', 'dueDate', 'createdAt', 'actions'];
+  protected readonly columns = computed(() =>
+    this.isHandset()
+      ? ['title', 'status', 'actions']
+      : ['title', 'priority', 'status', 'dueDate', 'createdAt', 'actions'],
+  );
   // Record<string, string>: a linha da tabela (let task) chega ao template sem tipo.
   protected readonly priorityLabels: Record<string, string> = PRIORITY_LABELS;
   protected readonly statusLabels: Record<string, string> = STATUS_LABELS;
@@ -144,25 +163,31 @@ export class TaskList implements OnInit {
   protected toggleStatus(task: Task): void {
     const action = task.status === 'DONE' ? this.taskService.reopen(task.id) : this.taskService.complete(task.id);
     action.subscribe({
-      next: () => this.reload(),
+      next: (updated) => {
+        this.notification.success(updated.status === 'DONE' ? 'Tarefa concluída' : 'Tarefa reaberta');
+        this.reload();
+      },
       error: (error: ApiError) => this.errorMessage.set(error.message),
     });
   }
 
   protected remove(task: Task): void {
-    // Provisório: o cartão 23 troca o confirm do navegador por um MatDialog.
-    if (!confirm(`Excluir a tarefa "${task.title}"?`)) {
-      return;
-    }
-    this.taskService.delete(task.id).subscribe({
-      next: () => {
-        // Se era o último item da página, volta uma página para não mostrar uma página vazia.
-        const q = this.query();
-        const lastOnPage = this.tasks().length === 1 && (q.page ?? 0) > 0;
-        this.query.set({ ...q, page: lastOnPage ? (q.page ?? 1) - 1 : q.page });
-      },
-      error: (error: ApiError) => this.errorMessage.set(error.message),
-    });
+    this.confirmService
+      .confirmDelete(task.title)
+      .pipe(
+        filter(Boolean), // segue só se o usuário confirmou
+        switchMap(() => this.taskService.delete(task.id)),
+      )
+      .subscribe({
+        next: () => {
+          this.notification.success('Tarefa excluída');
+          // Se era o último item da página, volta uma página para não mostrar uma página vazia.
+          const q = this.query();
+          const lastOnPage = this.tasks().length === 1 && (q.page ?? 0) > 0;
+          this.query.set({ ...q, page: lastOnPage ? (q.page ?? 1) - 1 : q.page });
+        },
+        error: (error: ApiError) => this.errorMessage.set(error.message),
+      });
   }
 
   private reload(): void {

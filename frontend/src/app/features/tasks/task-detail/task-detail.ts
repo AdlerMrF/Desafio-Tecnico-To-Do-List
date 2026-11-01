@@ -6,9 +6,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, of, switchMap, tap } from 'rxjs';
+import { catchError, filter, of, switchMap, tap } from 'rxjs';
 import { ApiError } from '../../../core/models/api-error';
 import { PRIORITY_LABELS, STATUS_LABELS, Task } from '../../../core/models/task';
+import { ConfirmService } from '../../../core/services/confirm-service';
+import { NotificationService } from '../../../core/services/notification-service';
 import { TaskService } from '../../../core/services/task-service';
 
 @Component({
@@ -20,6 +22,8 @@ import { TaskService } from '../../../core/services/task-service';
 export class TaskDetail {
   private readonly taskService = inject(TaskService);
   private readonly router = inject(Router);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly notification = inject(NotificationService);
 
   /** UUID da rota /tasks/:id, entregue pelo withComponentInputBinding. */
   readonly id = input.required<string>();
@@ -61,19 +65,27 @@ export class TaskDetail {
     const action = task.status === 'DONE' ? this.taskService.reopen(task.id) : this.taskService.complete(task.id);
     this.errorMessage.set(null);
     action.subscribe({
-      next: (updated) => this.task.set(updated),
+      next: (updated) => {
+        this.task.set(updated);
+        this.notification.success(updated.status === 'DONE' ? 'Tarefa concluída' : 'Tarefa reaberta');
+      },
       error: (error: ApiError) => this.errorMessage.set(error.message),
     });
   }
 
   protected remove(task: Task): void {
-    // Provisório: o cartão 23 troca o confirm do navegador por um MatDialog.
-    if (!confirm(`Excluir a tarefa "${task.title}"?`)) {
-      return;
-    }
-    this.taskService.delete(task.id).subscribe({
-      next: () => this.router.navigate(['/tasks']),
-      error: (error: ApiError) => this.errorMessage.set(error.message),
-    });
+    this.confirmService
+      .confirmDelete(task.title)
+      .pipe(
+        filter(Boolean), // segue só se o usuário confirmou
+        switchMap(() => this.taskService.delete(task.id)),
+      )
+      .subscribe({
+        next: () => {
+          this.notification.success('Tarefa excluída');
+          this.router.navigate(['/tasks']);
+        },
+        error: (error: ApiError) => this.errorMessage.set(error.message),
+      });
   }
 }
