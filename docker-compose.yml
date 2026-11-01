@@ -2,19 +2,47 @@ services:
   postgres:
     image: postgres:18
     container_name: todolist-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-todolist}
+      POSTGRES_USER: ${DB_USER:-todolist}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Crie o arquivo .env a partir do .env.example}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-todolist} -d ${DB_NAME:-todolist}"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build: ./backend
+    container_name: todolist-api
+    restart: unless-stopped
+    environment:
+      # Dentro da rede do Compose, o banco é encontrado pelo nome do serviço, e não por localhost.
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-todolist}
+      DB_USER: ${DB_USER:-todolist}
+      DB_PASSWORD: ${DB_PASSWORD:?Crie o arquivo .env a partir do .env.example}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: todolist-web
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
